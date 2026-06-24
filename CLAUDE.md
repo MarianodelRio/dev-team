@@ -196,6 +196,7 @@ The Orchestrator reads both files at the start of each task and surfaces relevan
 
 | Command | What it does |
 |---------|-------------|
+| `/team-init` | Configure the project and show current state — run this first |
 | `/bootstrap` | Conversational setup: idea → design → plan → tasks → infra |
 | `/orchestrate` | Pick next task, implement, push, mark READY_FOR_PR |
 | `/prepare-pr T-XXX` | Review, run all checks, open PR |
