@@ -1,0 +1,117 @@
+# devteam.config.yml
+# Framework configuration for dev-team.
+# Edit this file to customize how the framework works for your project.
+# All settings have sensible defaults — you only need to change what you want different.
+
+# ─────────────────────────────────────────
+# PROJECT
+# ─────────────────────────────────────────
+project:
+  name: ""                        # Your project name
+  stack: ""                       # Primary language/stack: python | typescript | go | rust | mixed
+                                  # Used to configure lint/test commands and generate appropriate agents
+
+# ─────────────────────────────────────────
+# MODEL CONFIGURATION
+# ─────────────────────────────────────────
+model:
+  # Model for design decisions, architecture, Advisor consultations
+  # Recommended: most capable model available
+  reasoning: claude-opus-4-8
+  # alternatives: openai/o3 | google/gemini-2.5-pro | local/ollama:qwen2.5-coder
+
+  # Model for writing code, implementing tasks
+  implementation: claude-sonnet-4-6
+  # alternatives: openai/gpt-4o | local/ollama:codestral
+
+  # Model for fast operations: status, lint checks, simple lookups
+  fast: claude-haiku-4-5
+  # alternatives: openai/gpt-4o-mini | local/ollama:phi4
+
+# ─────────────────────────────────────────
+# WORKFLOW
+# ─────────────────────────────────────────
+workflow:
+  # How PRs are created after /prepare-pr runs:
+  #   automatic — agent runs `gh pr create` directly
+  #   manual    — agent prepares everything and tells you the command to run yourself
+  pr_mode: automatic
+
+  # When the human checkpoint triggers during /orchestrate:
+  #   before_code  — agent presents plan, waits for approval, then codes (recommended)
+  #   before_pr    — agent codes and presents result before opening PR
+  #   both         — checkpoint at both points
+  human_checkpoint: before_code
+
+  # When to invoke the Advisor agent (uses reasoning model, more expensive):
+  #   high_risk    — only for shared contracts, schema changes, architecture decisions (recommended)
+  #   always       — for every task
+  #   never        — skip Advisor entirely
+  require_advisor: high_risk
+
+  # Maximum number of tasks that can be in-progress simultaneously
+  # Each requires its own git worktree
+  max_parallel_tasks: 3
+
+# ─────────────────────────────────────────
+# QUALITY GATES
+# ─────────────────────────────────────────
+quality:
+  # Minimum test coverage on core modules (0-100)
+  coverage_threshold: 70
+
+  # Run OWASP security scan on every PR diff
+  require_security_scan: true
+
+  # Spin up the app and test acceptance criteria against real/sandbox APIs
+  require_smoke_tests: true
+
+  # Smoke test mode:
+  #   sandbox — uses fixtures from tests/fixtures/ (faster, no credentials needed)
+  #   live    — uses real API with credentials from .env.test (slower, more realistic)
+  smoke_test_mode: sandbox
+
+  # Mutation testing — introduces deliberate bugs and checks if tests catch them
+  # Expensive. Recommended only for critical modules (ML, auth, payments)
+  require_mutation_tests: false
+
+  # Mutation test threshold (0-100). Only used if require_mutation_tests: true
+  mutation_score_threshold: 80
+
+# ─────────────────────────────────────────
+# BATTERIES
+# ─────────────────────────────────────────
+# Controls what /bootstrap generates automatically
+batteries:
+  # Generate Docker Compose + Dockerfile
+  docker: true
+
+  # Generate .github/workflows/ci.yml
+  ci: true
+
+  # Generate .env.example with all required variables documented
+  env_example: true
+
+  # Generate CONTRIBUTING.md, CODE_OF_CONDUCT.md
+  contributing: true
+
+  # Generate SECURITY.md with vulnerability reporting instructions
+  security_policy: true
+
+  # Generate GitHub PR and Issue templates
+  github_templates: true
+
+# ─────────────────────────────────────────
+# TASKS
+# ─────────────────────────────────────────
+tasks:
+  # Organize tasks in subfolders by status (recommended)
+  # If false, all tasks stay in tasks/ as flat files
+  status_folders: true
+
+  # Maximum task size the Orchestrator will start without an extra checkpoint
+  # S = ~2h | M = ~4h | L = ~8h | XL = requires explicit approval
+  max_auto_size: L
+
+  # Minimum coverage a new task must add (0 = no requirement)
+  min_coverage_delta: 0
