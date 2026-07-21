@@ -3,6 +3,8 @@
 # Edit this file to customize how the framework works for your project.
 # All settings have sensible defaults — you only need to change what you want different.
 
+devteam_version: "1.0.0"         # Framework version — updated automatically by /team-init on upgrade
+
 # ─────────────────────────────────────────
 # PROJECT
 # ─────────────────────────────────────────
@@ -53,6 +55,10 @@ workflow:
   # Each requires its own git worktree
   max_parallel_tasks: 3
 
+  # Delete merged feature branches from origin automatically after /done
+  # Set to false if you prefer to manage branches manually
+  cleanup_merged_branches: true
+
 # ─────────────────────────────────────────
 # QUALITY GATES
 # ─────────────────────────────────────────
@@ -77,6 +83,17 @@ quality:
 
   # Mutation test threshold (0-100). Only used if require_mutation_tests: true
   mutation_score_threshold: 80
+
+# ─────────────────────────────────────────
+# COMMANDS
+# ─────────────────────────────────────────
+# Override the commands agents use to test, lint, type-check, and run your project.
+# Leave empty ("") to let agents auto-detect from project files (package.json, pyproject.toml, etc.)
+commands:
+  test: ""          # e.g. "pytest --cov=src --cov-fail-under=70" | "npm test -- --coverage"
+  lint: ""          # e.g. "ruff check . && ruff format --check ." | "npm run lint"
+  type_check: ""    # e.g. "mypy src/" | "npx tsc --noEmit"
+  run: ""           # e.g. "uvicorn app.main:app --reload" | "npm run dev"
 
 # ─────────────────────────────────────────
 # BATTERIES

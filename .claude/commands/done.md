@@ -1,14 +1,16 @@
 You are executing the `/done` command for dev-team.
 
-**Input:** `$ARGUMENTS` — task ID (e.g., `T-026`)
+**Input:** `$ARGUMENTS` — task ID (e.g., `T-026` or `B-003`)
 
 Your job: mark the task DONE after the human has merged the PR, then report which tasks are now unblocked.
+
+This command handles both regular tasks (`T-XXX`) and bug tasks (`B-XXX`).
 
 ---
 
 ## Step 1 — Find the task
 
-Look in `tasks/pr-open/` for `T-XXX-*.md`. If not found, check other folders.
+Look in `tasks/pr-open/` for `[ID]-*.md` (matches both `T-XXX` and `B-XXX`). If not found, check other folders.
 
 ---
 
@@ -44,18 +46,34 @@ status: done
 ```
 
 ```bash
-git add tasks/done/T-XXX-slug.md
-git commit -m "chore(T-XXX): mark DONE"
+git add tasks/done/[ID]-slug.md
+git commit -m "chore([ID]): mark DONE"
 git push origin main
 ```
+
+---
+
+## Step 3b — Clean up merged branch (if configured)
+
+Read `cleanup_merged_branches` from `devteam.config.yml`.
+
+If `true`:
+```bash
+# Derive branch name from task frontmatter (branch: field) or standard pattern
+git push origin --delete [branch-slug]  2>/dev/null || true
+```
+
+If the branch is already gone (already deleted by GitHub's auto-delete on merge), skip silently.
+If `cleanup_merged_branches: false`, skip this step entirely.
 
 ---
 
 ## Step 4 — Report unblocked tasks
 
 Scan all files in `tasks/blocked/`. For each task where:
-- T-XXX appears in `depends_on`
+- `[ID]` appears in `depends_on`
 - All other items in `depends_on` are also `done`
+- The task is not `cancelled`
 
 → Move that task to `tasks/available/` and update its frontmatter to `status: available`.
 
@@ -89,3 +107,5 @@ If nothing was unblocked: "No new tasks unblocked."
 - **Never mark DONE without the task being in pr-open** (without explicit human override)
 - **Always update blocked tasks** — don't leave tasks in blocked/ when their deps are done
 - **Push to main** — done status must be visible to all agents immediately
+- **Works for both T-XXX and B-XXX** — bug tasks follow the same lifecycle after they reach pr-open
+- **Skip branch cleanup silently if branch is already gone** — GitHub auto-deletes on merge is common

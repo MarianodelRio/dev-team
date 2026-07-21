@@ -26,20 +26,11 @@ Multiple agents can work in parallel on different tasks using git worktrees — 
 
 ### New project
 
-```bash
-# 1. Use this template or clone
-git clone https://github.com/MarianodelRio/dev-team.git my-project
-cd my-project
-
-# 2. Write your idea
-# Edit IDEA.md with your project idea
-
-# 3. Configure (optional — defaults work for most projects)
-# Edit devteam.config.yml
-
-# 4. Start the design session in Claude Code
-# /bootstrap
-```
+1. Click **"Use this template"** on GitHub to create your repo
+2. Clone it locally and open it in Claude Code
+3. Run `/team-init` — configure your project, set your stack, describe your idea
+4. Run `/bootstrap` — design conversation → architecture + tasks generated
+5. Run `/orchestrate` — agents start implementing
 
 ### Existing project
 
@@ -47,8 +38,9 @@ cd my-project
 # Copy the framework files into your project
 curl -fsSL https://raw.githubusercontent.com/MarianodelRio/dev-team/main/install.sh | bash
 
-# Run brownfield bootstrap — analyzes your codebase, generates delta tasks
-# /bootstrap --mode=brownfield
+# Then open Claude Code and run:
+# /team-init          ← configure the framework for this project
+# /bootstrap --mode=brownfield  ← analyzes your codebase, generates delta tasks
 ```
 
 ---
@@ -99,15 +91,18 @@ dev-team adapts to where you are:
 ## Commands
 
 ```
+/team-init          Configure the project and show current state — start here
 /bootstrap          Start or resume the design conversation
 /orchestrate        Pick and implement the next available task
 /prepare-pr T-XXX   Full review and open PR
-/done T-XXX         Mark task done after merge
+/done T-XXX         Mark task done after merge, clean up branch
 /status             Full project status board
 /add-task           Design and add a new task mid-project
 /guide              Current state — what's built, how to test it
 /explore [topic]    Design exploration before coding
 /bug [description]  Investigate and fix a bug
+/restart T-XXX      Recover a task stuck in-progress (agent crashed)
+/cancel T-XXX       Abandon a task cleanly
 ```
 
 ---

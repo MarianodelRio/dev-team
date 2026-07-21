@@ -61,8 +61,32 @@ fi
 # devteam.config.yml
 copy_if_missing "$SCRIPT_DIR/devteam.config.yml" "$TARGET/devteam.config.yml"
 
-# IDEA.md
-copy_if_missing "$SCRIPT_DIR/IDEA.md" "$TARGET/IDEA.md"
+# IDEA.md — write a neutral template, not the framework's own IDEA.md
+if [ -f "$TARGET/IDEA.md" ]; then
+  skip "IDEA.md"
+else
+  cat > "$TARGET/IDEA.md" <<'EOF'
+# Project Idea
+
+<!--
+  Describe what you want to build. A few sentences is enough to start.
+  Run /team-init in Claude Code to set up the project, then /bootstrap to start the design session.
+-->
+
+## What problem does this solve?
+
+[Describe the problem or opportunity]
+
+## Who is the first user?
+
+[You? A team? The public?]
+
+## What must work perfectly on day one?
+
+[The one thing that matters most]
+EOF
+  success "IDEA.md (template)"
+fi
 
 # ── Create directory structure ─────────────────────────────────────────────
 

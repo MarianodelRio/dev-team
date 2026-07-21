@@ -44,8 +44,13 @@ git branch -r | grep "origin/feature/"
 ### 🔴 Blocked ([N])
 [- T-XXX — title [waiting for: T-YYY (in-progress), T-ZZZ (available)]]
 
+### 🐛 Active Bugs ([N])
+[Only show if any B-XXX files exist in in-progress/, ready-for-pr/, or pr-open/]
+[- B-XXX — symptom (status: in-progress | ready-for-pr | pr-open)]
+
 ### ⚠️ Stale ([N])
 [Tasks with a remote branch but still status: available — may indicate a crashed agent]
+[Run /restart T-XXX to recover]
 
 ---
 Phase breakdown:
@@ -62,5 +67,7 @@ Suggested next /orchestrate target: T-XXX (unblocks the most)
 ## Rules
 
 - Always `git fetch` first — stale remote branch data causes wrong available/claimed status
-- Mark stale tasks clearly — a branch that exists but task is still `available` means something crashed
+- Mark stale tasks clearly — a branch that exists but task is still `available` means something crashed → suggest /restart
 - Highlight the critical path next task with ⭐
+- Show the Bugs section only when active bugs exist — don't show an empty section
+- Cancelled tasks (status: cancelled) are hidden from the board by default

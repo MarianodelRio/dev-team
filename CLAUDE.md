@@ -206,6 +206,8 @@ The Orchestrator reads both files at the start of each task and surfaces relevan
 | `/add-task [description]` | Design and add a new task mid-project |
 | `/guide` | Current state of the project — what's built, how to test it |
 | `/bug [description]` | Investigate and fix a bug |
+| `/restart T-XXX` | Recover a task stuck in-progress (agent crashed, worktree lost) |
+| `/cancel T-XXX` | Abandon a task cleanly — removes from active flow, preserves audit trail |
 
 ---
 
