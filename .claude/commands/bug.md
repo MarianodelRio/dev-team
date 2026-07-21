@@ -10,14 +10,14 @@ Your job: investigate the bug systematically, find the root cause, and implement
 
 Generate a bug ID (B-001, B-002, etc. — check tasks/ for existing B-XXX files).
 
-Create `tasks/in-progress/B-XXX-[slug].md`:
+Create `tasks/available/B-XXX-[slug].md`:
 ```markdown
 ---
 id: B-XXX
 type: bug
 agent: [TBD — assigned after investigation]
-status: in-progress
-branch: fix/B-XXX-[slug]
+status: available
+branch: ~
 pr: ~
 ---
 
@@ -29,21 +29,19 @@ pr: ~
 **Affected module:** [TBD]
 ```
 
-Claim the branch and set up an isolated worktree (same model as `/orchestrate`):
+Commit the new bug task to main, then claim it — this reuses the same reliable path as `/orchestrate` (atomic lock branch `fix/B-XXX-slug` + isolated worktree + IN_PROGRESS on main):
 
 ```bash
-git checkout -b fix/B-XXX-[slug]
-git add tasks/in-progress/B-XXX-[slug].md
-git commit -m "chore(B-XXX): start investigation"
-git push -u origin fix/B-XXX-[slug]
+git add tasks/available/B-XXX-[slug].md
+git commit -m "chore(B-XXX): file bug"
+git push origin main
 
-# Isolated worktree — all investigation and fix work happens here
-git worktree add ../[project-name]-B-XXX fix/B-XXX-[slug]
+bash scripts/dt-claim.sh B-XXX
 ```
 
-**If push fails**: another agent is already on this bug. Stop and pick it up with `/restart` if it's stale.
+**If the claim exits non-zero**: another agent is already on this bug — stop (use `/restart B-XXX` if it's stale).
 
-All work in Steps 2–6 happens inside `../[project-name]-B-XXX/`. The main repo stays on main.
+All work in Steps 2–6 happens inside the worktree it created (`../[project-name]-B-XXX/`). The main repo stays on main.
 
 ---
 
@@ -128,21 +126,11 @@ git commit -m "B-XXX: [fix description]"
 git push origin fix/B-XXX-[slug]
 ```
 
-Remove the worktree and update task status on main:
+Then run the ready script from the main repo — it removes the worktree, syncs main, and moves the bug to `ready-for-pr/`:
 
 ```bash
 cd ../[project-name]
-git worktree remove ../[project-name]-B-XXX
-git checkout main
-git pull origin main --ff-only
-```
-
-Move `tasks/in-progress/B-XXX-slug.md` → `tasks/ready-for-pr/B-XXX-slug.md`, set status `ready-for-pr`:
-
-```bash
-git add tasks/ready-for-pr/B-XXX-slug.md
-git commit -m "chore(B-XXX): mark READY_FOR_PR"
-git push origin main
+bash scripts/dt-ready.sh B-XXX
 ```
 
 Report:

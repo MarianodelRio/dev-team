@@ -63,34 +63,10 @@ Wait for response.
 
 ## Step 4A — Reset to available (delete branch)
 
-```bash
-git checkout main
-git pull origin main --ff-only
-```
-
-Clean up worktree if it exists:
-```bash
-# Check for worktrees
-git worktree list
-# Remove if found matching this task
-git worktree remove --force ../[project-name]-[ID]
-```
-
-Delete the branch:
-```bash
-git branch -D feature/[slug]               2>/dev/null || true
-git push origin --delete feature/[slug]    2>/dev/null || true
-```
-
-Update task file:
-- `status: available`
-- `branch: ~`
-- Move file: `tasks/in-progress/` → `tasks/available/`
+Run the restart script — it syncs main, removes the worktree, deletes the branch (local + remote), resets the task to `available` with `branch: ~`, and moves it back to `tasks/available/`:
 
 ```bash
-git add tasks/available/[ID]-slug.md
-git commit -m "chore([ID]): restart — reset to available"
-git push origin main
+bash scripts/dt-restart.sh [ID]
 ```
 
 Report:
@@ -104,7 +80,11 @@ Run /orchestrate to start it.
 
 ## Step 4B — Reset to available (keep branch)
 
-Same as 4A but skip branch deletion. Update task frontmatter only.
+Same as 4A but keep the branch on origin:
+
+```bash
+bash scripts/dt-restart.sh [ID] --keep-branch
+```
 
 Report:
 ```

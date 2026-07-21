@@ -3,7 +3,7 @@
 # Edit this file to customize how the framework works for your project.
 # All settings have sensible defaults — you only need to change what you want different.
 
-devteam_version: "1.0.0"         # Framework version — updated automatically by /team-init on upgrade
+devteam_version: "1.1.0"         # Framework version — updated automatically by /team-init on upgrade
 
 # ─────────────────────────────────────────
 # PROJECT
@@ -64,12 +64,27 @@ workflow:
   # Set to false if you prefer to manage branches manually
   cleanup_merged_branches: true
 
+  # Auto-merge low-risk PRs once all checks pass (via `gh pr merge --auto`):
+  #   off      — never auto-merge; you merge every PR manually (default)
+  #   low_risk — auto-merge ONLY when: verdict APPROVED with no warnings, no protected
+  #              files or shared contracts touched, and size ≤ M
+  # Requires pr_mode: automatic (ignored under pr_mode: manual). After the PR merges you
+  # still run /done T-XXX to mark it done and unblock dependents.
+  auto_merge: off
+
 # ─────────────────────────────────────────
 # QUALITY GATES
 # ─────────────────────────────────────────
 quality:
   # Minimum test coverage on core modules (0-100)
   coverage_threshold: 70
+
+  # How many review sub-agents /prepare-pr runs, scaled to the diff's risk:
+  #   full — all 5 sub-agents (code quality, adversarial, security, smoke, mutation)
+  #   fast — code quality + security only (for trivial diffs)
+  #   auto — fast if the diff touches only docs/config, full if it touches code/tests
+  # Safety override: a diff touching protected files or shared contracts is ALWAYS full.
+  review_profile: auto
 
   # Run OWASP security scan on every PR diff
   require_security_scan: true

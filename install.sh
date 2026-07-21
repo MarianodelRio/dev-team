@@ -89,6 +89,22 @@ copy_if_missing "$SCRIPT_DIR/devteam.config.yml" "$TARGET/devteam.config.yml"
 # overwrites an existing project CLAUDE.md.
 copy_if_missing "$SCRIPT_DIR/CLAUDE.md" "$TARGET/CLAUDE.md"
 
+# scripts/ — the dt-* helpers the commands call. Without these, /orchestrate,
+# /done, /cancel, /restart and /status break in an installed project.
+if [ -d "$TARGET/scripts" ]; then
+  mkdir -p "$TARGET/scripts"
+  for f in "$SCRIPT_DIR/scripts/"*; do
+    copy_if_missing "$f" "$TARGET/scripts/$(basename "$f")"
+  done
+else
+  cp -r "$SCRIPT_DIR/scripts" "$TARGET/scripts"
+  success "Copied scripts/"
+fi
+
+# docs/WORKFLOWS.md — the flow cheatsheet reference.
+mkdir -p "$TARGET/docs"
+copy_if_missing "$SCRIPT_DIR/docs/WORKFLOWS.md" "$TARGET/docs/WORKFLOWS.md"
+
 # IDEA.md — write a neutral template, not the framework's own IDEA.md
 if [ -f "$TARGET/IDEA.md" ]; then
   skip "IDEA.md"

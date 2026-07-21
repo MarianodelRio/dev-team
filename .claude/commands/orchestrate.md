@@ -18,21 +18,21 @@ If pull fails (not fast-forward), stop and tell the human to resolve the diverge
 
 ## Step 1 — Find the best available task
 
-Read all files in `tasks/available/`. For each:
-- Check `depends_on` in frontmatter — all must be `done` (file must be in `tasks/done/`)
-- Check that no remote branch `origin/feature/T-XXX-*` exists for it
+Regenerate and read the index — it already resolves dependencies, marks claimed tasks from remote branches, and precomputes how many tasks each one unblocks:
 
 ```bash
-git branch -r | grep "origin/feature/"
+bash scripts/dt-board.sh
 ```
 
-If a remote branch exists for a task, it's claimed — skip it.
+Read `.dt-index.json`. Candidate tasks are those with `folder: "available"` and `claimed_remote: false`.
 
 **Selection criteria** (in order):
-1. All dependencies DONE
-2. No remote branch (unclaimed)
-3. Prefer the task that unblocks the most others
+1. `folder: available` (dependencies already resolved by the board)
+2. `claimed_remote: false` (unclaimed)
+3. Prefer the task with the most `unblocks` (the board's `critical_path_next` is the top pick)
 4. Prefer smaller size (S before M before L)
+
+The index only *prioritises*. The real claim lock is the branch push in Step 4 — if two chats pick the same task, `dt-claim` lets only one win.
 
 If no tasks are available, report:
 ```
@@ -98,26 +98,15 @@ If the human redirects, return to Step 2 with the new direction.
 
 ## Step 4 — Claim the task (atomic)
 
-1. Update the task file frontmatter: `status: in-progress`
-2. Move the file: `tasks/available/T-XXX-slug.md` → `tasks/in-progress/T-XXX-slug.md`
-3. Create and push the branch:
+Run the claim script — it sets `status: in-progress`, creates the atomic lock branch, sets up the worktree, and records IN_PROGRESS on main in one reliable step:
 
 ```bash
-git checkout -b feature/T-XXX-short-slug
-git add tasks/in-progress/T-XXX-slug.md
-git commit -m "chore(T-XXX): claim [IN_PROGRESS]"
-git push -u origin feature/T-XXX-short-slug
+bash scripts/dt-claim.sh T-XXX
 ```
 
-**If push fails**: another agent claimed this task. Go back to Step 1 and pick a different task.
+**If it exits non-zero** (message "already claimed"): another agent got there first. Go back to Step 1 and pick a different task.
 
-4. Create a git worktree for isolated development:
-
-```bash
-git worktree add ../[project-name]-T-XXX feature/T-XXX-short-slug
-```
-
-All implementation work happens in `../[project-name]-T-XXX/`. The main repo stays on main.
+On success, all implementation work happens in the worktree it created (`../[project-name]-T-XXX/`). The main repo stays on main.
 
 ---
 
@@ -178,22 +167,7 @@ git push origin feature/T-XXX-short-slug
 
 ## Step 8 — Mark READY_FOR_PR and clean up
 
-1. Remove the worktree:
-```bash
-cd ../[project-name]
-git worktree remove ../[project-name]-T-XXX
-```
-
-2. Update task status on main:
-```bash
-git checkout main
-git pull origin main --ff-only
-```
-
-Edit the task file:
-- Update frontmatter: `status: ready-for-pr`
-- Move file: `tasks/in-progress/T-XXX-slug.md` → `tasks/ready-for-pr/T-XXX-slug.md`
-- Append the **Completed** section:
+1. First append the **Completed** section to the task file in `tasks/in-progress/T-XXX-slug.md` (the script preserves this content when it moves the file):
 
 ```markdown
 ## Completed
@@ -202,10 +176,10 @@ Edit the task file:
 - [decisions made and why]
 ```
 
+2. Run the ready script — it removes the worktree, syncs main, moves the file to `ready-for-pr/`, and commits+pushes the status on main:
+
 ```bash
-git add tasks/ready-for-pr/T-XXX-slug.md
-git commit -m "chore(T-XXX): mark READY_FOR_PR"
-git push origin main
+bash scripts/dt-ready.sh T-XXX
 ```
 
 3. Report to human and **STOP**:

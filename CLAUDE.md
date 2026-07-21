@@ -130,6 +130,7 @@ feature/T-XXX-short-slug      ← one branch per task
 - Each agent works in its own git worktree (`../project-T-XXX/`)
 - Branch creation = task claim. If push fails, another agent claimed it first → pick another task
 - `tasks/*.md` status updates (IN_PROGRESS, READY_FOR_PR, DONE) are pushed directly to main — they are coordination metadata, not production code
+- State transitions go through the canonical scripts in `scripts/` — `dt-claim`, `dt-ready`, `dt-done`, `dt-cancel`, `dt-restart` — not hand-rolled git. They are idempotent, validate inputs, and make the branch push the atomic claim lock. `dt-board` regenerates the `.dt-index.json` cache (git-ignored)
 
 > **Requirement:** `main` must **not** be a protected branch. The framework pushes `tasks/*.md` status metadata directly to `main` as its coordination mechanism (`/orchestrate`, `/done`, `/add-task`, `/bug`). Branch protection on `main` will make these pushes fail and break the workflow. If your org requires protection, exclude `tasks/**` from the ruleset — otherwise leave `main` unprotected.
 
@@ -156,8 +157,9 @@ Every PR must pass before merge:
 - No imports outside assigned folders
 - No business logic in HTTP layer
 - Protected files untouched (or explicitly approved)
+- Auto-merge (`workflow.auto_merge: low_risk`) never applies to PRs touching protected files or shared contracts, or with any warning — those always require a manual merge
 
-**PR Review sub-agents** (run by PR Reviewer automatically):
+**PR Review sub-agents** (run by PR Reviewer automatically; which ones run scales with `quality.review_profile` — `full`/`fast`/`auto` — but a diff touching protected files or contracts always runs `full`):
 - Code Quality Agent — scope, patterns, correctness
 - Adversarial Agent — activates on unanimous approval, actively looks for flaws
 - Security Agent — OWASP top 10 on the diff
@@ -208,6 +210,7 @@ The Orchestrator reads both files at the start of each task and surfaces relevan
 | `/explore [topic]` | Design exploration before coding |
 | `/add-task [description]` | Design and add a new task mid-project |
 | `/guide` | Current state of the project — what's built, how to test it |
+| `/cheatsheet` | What to do next, contextualized to the current board (global or per-task) |
 | `/bug [description]` | Investigate and fix a bug |
 | `/restart T-XXX` | Recover a task stuck in-progress (agent crashed, worktree lost) |
 | `/cancel T-XXX` | Abandon a task cleanly — removes from active flow, preserves audit trail |

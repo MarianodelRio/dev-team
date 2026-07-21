@@ -30,59 +30,21 @@ Check the `status` field in frontmatter:
 
 ---
 
-## Step 3 — Mark DONE
+## Step 3 — Mark DONE, clean up, and unblock
+
+Run the done script. It syncs main, moves the file to `done/`, deletes the merged branch (if `cleanup_merged_branches: true`, silent when already gone), and moves every dependent whose dependencies are now all done from `blocked/` to `available/` — all committed and pushed to main:
 
 ```bash
-git fetch origin
-git checkout main
-git pull origin main --ff-only
+bash scripts/dt-done.sh [ID]
 ```
 
-Move task file: `tasks/pr-open/T-XXX-slug.md` → `tasks/done/T-XXX-slug.md`
-
-Update frontmatter:
-```yaml
-status: done
-```
-
-```bash
-git add tasks/done/[ID]-slug.md
-git commit -m "chore([ID]): mark DONE"
-git push origin main
-```
-
----
-
-## Step 3b — Clean up merged branch (if configured)
-
-Read `cleanup_merged_branches` from `devteam.config.yml`.
-
-If `true`:
-```bash
-# Derive branch name from task frontmatter (branch: field) or standard pattern
-git push origin --delete [branch-slug]  2>/dev/null || true
-```
-
-If the branch is already gone (already deleted by GitHub's auto-delete on merge), skip silently.
-If `cleanup_merged_branches: false`, skip this step entirely.
+Works for both `T-XXX` and `B-XXX`.
 
 ---
 
 ## Step 4 — Report unblocked tasks
 
-Scan all files in `tasks/blocked/`. For each task where:
-- `[ID]` appears in `depends_on`
-- All other items in `depends_on` are also `done`
-- The task is not `cancelled`
-
-→ Move that task to `tasks/available/` and update its frontmatter to `status: available`.
-
-```bash
-git add tasks/available/
-git add tasks/blocked/
-git commit -m "chore: unblock tasks after T-XXX"
-git push origin main
-```
+Use the script's output (and `.dt-index.json`) to report what was just unblocked.
 
 Report:
 ```

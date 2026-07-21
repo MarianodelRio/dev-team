@@ -101,6 +101,7 @@ dev-team adapts to where you are:
 /status             Full project status board
 /add-task           Design and add a new task mid-project
 /guide              Current state — what's built, how to test it
+/cheatsheet         What to do next, contextual to the board (global or /cheatsheet T-XXX)
 /explore [topic]    Design exploration before coding
 /bug [description]  Investigate and fix a bug
 /restart T-XXX      Recover a task stuck in-progress (agent crashed)

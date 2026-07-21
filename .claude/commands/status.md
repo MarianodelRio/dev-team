@@ -6,16 +6,13 @@ Your job: display a clear, complete status board of the project.
 
 ## Step 1 — Gather data
 
+Regenerate the index (it fetches, reads every task's frontmatter, marks claimed tasks from remote branches, and precomputes `unblocks` + `critical_path_next`), then read it:
+
 ```bash
-git fetch origin
+bash scripts/dt-board.sh --print
 ```
 
-Count files in each `tasks/` subfolder. Read frontmatter from each task file.
-
-Check remote branches for in-progress tasks:
-```bash
-git branch -r | grep "origin/feature/"
-```
+`.dt-index.json` now holds the full board. Read from it instead of re-scanning `tasks/` by hand — the `⭐` critical-path task and each task's `unblocks`/`claimed_remote` are already computed.
 
 ---
 

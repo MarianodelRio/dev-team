@@ -62,9 +62,27 @@ If anything fails:
 
 ---
 
+## Step 3.5 — Select the review profile
+
+Read `quality.review_profile` from `devteam.config.yml` and inspect the diff:
+
+```bash
+git diff --name-only origin/main
+```
+
+- `full` → run all sub-agents (4a–4e).
+- `fast` → run only **4a Code Quality** + **4c Security**; skip adversarial, smoke, mutation.
+- `auto` → if every changed path is docs/config (`*.md`, `docs/**`, `*.yml`, `*.yaml`, `*.toml`, `*.cfg`, `.env.example`) → `fast`; if any code or test file changed → `full`.
+
+**Safety override:** if the diff touches any protected file (shared contracts, DB schema, CI config) → force `full`, regardless of profile.
+
+State which profile was selected and why before launching.
+
+---
+
 ## Step 4 — Launch review sub-agents in parallel
 
-Invoke all sub-agents simultaneously. Each runs independently.
+Invoke the sub-agents for the selected profile simultaneously. Each runs independently.
 
 **4a. Code Quality Agent**
 Review: scope adherence, patterns from `design.md`, no business logic in HTTP layer, no magic numbers, functions ≤ ~50 lines, error handling at boundaries only.
@@ -174,6 +192,23 @@ Print the exact `gh pr create` command for the human to run themselves.
 
 ---
 
+## Step 6b — Auto-merge (optional)
+
+Read `workflow.auto_merge` from `devteam.config.yml`. Only act if it is `low_risk` **and** `pr_mode: automatic`.
+
+Enable auto-merge **only** when ALL of these hold:
+- Verdict is APPROVED with no warnings (Step 5)
+- The diff touches no protected files and no shared contracts
+- Task size is ≤ M
+
+```bash
+gh pr merge <pr-number> --auto --squash
+```
+
+Otherwise (or if `auto_merge: off`) skip this step — the human merges manually. Never auto-merge a PR touching protected files or contracts, or with any warning/blocker.
+
+---
+
 ## Step 7 — Update task file
 
 Move task file: `tasks/ready-for-pr/` → `tasks/pr-open/`
@@ -217,6 +252,7 @@ Output a structured summary for the human reviewing the PR:
 **Adversarial finding:** [none / fixed: ...]
 
 **To merge:** approve on GitHub and run /done T-XXX
+[If auto-merge was enabled: "Auto-merge is ON — the PR merges itself once checks pass; then run /done T-XXX."]
 ```
 
 ---
@@ -225,6 +261,7 @@ Output a structured summary for the human reviewing the PR:
 
 - **Never mark the task DONE** — that is `/done`'s job after the human merges
 - **Never fix behavioral issues automatically** — report and stop
-- **Always run all sub-agents** — do not skip any even if early ones pass
-- **Adversarial Agent always runs** — it activates specifically on unanimous approval
+- **Run every sub-agent the selected profile calls for** — don't skip within a profile even if early ones pass
+- **Adversarial Agent always runs in `full`** — it activates specifically on unanimous approval (a `fast` diff is docs/config only, so it doesn't apply)
+- **Protected files/contracts force `full`** — never let a profile skip review on high-risk diffs
 - **Never open a PR with a BLOCKER** — fix first, then re-run /prepare-pr

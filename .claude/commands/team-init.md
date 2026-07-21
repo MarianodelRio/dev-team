@@ -138,6 +138,11 @@ Advisor (uses the reasoning model — more powerful but slower)
   never     — skip Advisor entirely
   Current: [value]  →  keep or change?
 
+Auto-merge (merge low-risk PRs automatically once checks pass)
+  off      — you merge every PR manually  ← recommended default
+  low_risk — auto-merge only clean, small, non-contract PRs (needs pr_mode: automatic)
+  Current: [value]  →  keep or change?
+
 Max parallel tasks (each needs its own git worktree)
   Current: [value]  →  keep or change? (1–5 recommended)
 ```
@@ -151,6 +156,11 @@ Accept answers one question at a time or all at once. Write to `devteam.config.y
 ```
 Test coverage threshold (0–100, default 70)
   Current: [value]%  →  keep or change?
+
+Review profile (how many review sub-agents /prepare-pr runs)
+  full — all 5  ·  fast — code quality + security  ·  auto — scales to the diff  ← recommended
+  (protected files / contracts always force full)
+  Current: [value]  →  keep or change?
 
 Security scan on every PR (OWASP Top 10 + AI/agentic risks)
   Current: [on/off]  →  keep or change?

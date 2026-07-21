@@ -57,40 +57,14 @@ Wait for explicit "yes". Any other response aborts.
 
 ## Step 4 — Execute cancellation
 
-```bash
-git fetch origin
-git checkout main
-git pull origin main --ff-only
-```
-
-Clean up worktree if it exists:
-```bash
-git worktree list
-git worktree remove --force ../[project-name]-[ID]  2>/dev/null || true
-```
-
-If user chose to delete branch:
-```bash
-git branch -D feature/[slug]               2>/dev/null || true
-git push origin --delete feature/[slug]    2>/dev/null || true
-```
-
-Update task file:
-- `status: cancelled`
-- Append a note:
-
-```markdown
-## Cancelled
-Cancelled on [date]. Reason: [ask user for one-line reason if not provided in $ARGUMENTS]
-```
-
-Move file to `tasks/blocked/[ID]-slug.md` (cancelled tasks park here — not available, not done).
+Run the cancel script with the choices from the checkpoint. It syncs main, removes the worktree, optionally deletes the branch, appends a `## Cancelled` note, and parks the task in `tasks/blocked/` as `cancelled` — committed and pushed:
 
 ```bash
-git add tasks/blocked/[ID]-slug.md
-git commit -m "chore([ID]): cancel task"
-git push origin main
+# Add --delete-branch only if the user chose option A (discard work).
+bash scripts/dt-cancel.sh [ID] [--delete-branch] --reason "[one-line reason]"
 ```
+
+If the user chose to keep the branch (option B), omit `--delete-branch`.
 
 ---
 

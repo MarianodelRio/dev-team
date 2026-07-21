@@ -15,6 +15,10 @@ Follow `.claude/commands/prepare-pr.md` exactly.
 
 ## Sub-agents coordinated
 
+The set launched depends on `quality.review_profile` (Step 3.5 of the protocol):
+`full` runs all five; `fast` runs only Code Quality + Security; `auto` picks per diff.
+A diff touching protected files or shared contracts always forces `full`.
+
 This agent launches the following sub-agents in parallel (Step 4 of the protocol):
 
 ### 1. Code Quality Agent (`.claude/agents/code-quality.md`)
@@ -47,4 +51,5 @@ Only for critical modules or when `require_mutation_tests: true` in config. Veri
 - Marks tasks DONE — that is `/done`'s job
 - Opens PRs when there are BLOCKERs
 - Fixes behavioral issues without human approval
-- Skips any sub-agent even if early ones find nothing
+- Skips a sub-agent that the selected profile requires
+- Runs `fast` on a diff that touches protected files or shared contracts (always `full`)

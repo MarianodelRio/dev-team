@@ -6,7 +6,13 @@ Your job: produce a clear, readable snapshot of the current state of the project
 
 ## Step 1 — Gather information
 
-Read:
+Regenerate the index first for a fast, consistent snapshot of task state:
+
+```bash
+bash scripts/dt-board.sh
+```
+
+Read (using `.dt-index.json` for status/progress, files for detail):
 - All tasks in `tasks/done/` — what has been implemented
 - All tasks in `tasks/in-progress/` and `tasks/ready-for-pr/` — what's about to land
 - `design.md` — the intended architecture, plus its Testing strategy and Documentation plan

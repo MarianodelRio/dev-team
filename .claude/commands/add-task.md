@@ -8,10 +8,16 @@ Your job: design a well-formed task through a short conversation and add it to t
 
 ## Step 1 — Understand the request
 
+Regenerate the index for a fast view of all task IDs and their dependency graph:
+
+```bash
+bash scripts/dt-board.sh
+```
+
 Read:
 - `design.md` — to understand the existing architecture
 - `plan.md` — to understand phases and the current dependency graph
-- All task frontmatter in `tasks/` — to find the next available ID and check for overlap
+- `.dt-index.json` — the current tasks, their IDs, and the dependency graph (to pick the next free ID and check for overlap)
 
 Determine:
 - Next available task ID (T-XXX + 1 from the highest existing ID)
