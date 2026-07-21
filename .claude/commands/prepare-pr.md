@@ -134,6 +134,10 @@ Fix these in the feature branch and run /prepare-pr again.
 
 ## Step 6 — Open the PR
 
+**Human checkpoint** — read `workflow.human_checkpoint` from `devteam.config.yml`:
+- `before_pr` or `both` — present the synthesized result (what was implemented + the sub-agent verdicts from Step 5) and **wait for explicit confirmation before opening the PR**.
+- `before_code` — the approval gate already happened in `/orchestrate`; proceed directly.
+
 Check `pr_mode` in `devteam.config.yml`:
 
 **If `pr_mode: automatic`:**

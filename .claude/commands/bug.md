@@ -29,12 +29,21 @@ pr: ~
 **Affected module:** [TBD]
 ```
 
+Claim the branch and set up an isolated worktree (same model as `/orchestrate`):
+
 ```bash
 git checkout -b fix/B-XXX-[slug]
 git add tasks/in-progress/B-XXX-[slug].md
 git commit -m "chore(B-XXX): start investigation"
 git push -u origin fix/B-XXX-[slug]
+
+# Isolated worktree — all investigation and fix work happens here
+git worktree add ../[project-name]-B-XXX fix/B-XXX-[slug]
 ```
+
+**If push fails**: another agent is already on this bug. Stop and pick it up with `/restart` if it's stale.
+
+All work in Steps 2–6 happens inside `../[project-name]-B-XXX/`. The main repo stays on main.
 
 ---
 
@@ -108,16 +117,29 @@ Add a test that would have caught this bug.
 
 ---
 
-## Step 7 — Mark READY_FOR_PR
+## Step 7 — Mark READY_FOR_PR and clean up
 
-Move `tasks/in-progress/B-XXX-slug.md` → `tasks/ready-for-pr/B-XXX-slug.md`
-Update status to `ready-for-pr`.
+Commit and push the fix from the worktree:
 
 ```bash
+cd ../[project-name]-B-XXX
 git add [specific files]
 git commit -m "B-XXX: [fix description]"
 git push origin fix/B-XXX-[slug]
+```
+
+Remove the worktree and update task status on main:
+
+```bash
+cd ../[project-name]
+git worktree remove ../[project-name]-B-XXX
 git checkout main
+git pull origin main --ff-only
+```
+
+Move `tasks/in-progress/B-XXX-slug.md` → `tasks/ready-for-pr/B-XXX-slug.md`, set status `ready-for-pr`:
+
+```bash
 git add tasks/ready-for-pr/B-XXX-slug.md
 git commit -m "chore(B-XXX): mark READY_FOR_PR"
 git push origin main
@@ -133,6 +155,7 @@ Run /prepare-pr B-XXX to open the PR.
 
 ## Rules
 
+- **Always work in an isolated worktree** — never fix directly on main or in the main checkout
 - **Minimal fix only** — do not clean up or refactor beyond the bug
 - **Never cross module boundaries** without explicit human approval
 - **Always add a regression test** — if there's no test, the bug will return

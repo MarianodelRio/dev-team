@@ -24,6 +24,8 @@ Multiple agents can work in parallel on different tasks using git worktrees — 
 
 ## Quick start
 
+> **Requirement:** keep `main` **unprotected**. dev-team pushes task status metadata (`tasks/*.md`) directly to `main` as its coordination mechanism — branch protection will break the workflow. If your org mandates protection, exclude `tasks/**` from the ruleset.
+
 ### New project
 
 1. Click **"Use this template"** on GitHub to create your repo

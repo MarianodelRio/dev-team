@@ -131,6 +131,8 @@ feature/T-XXX-short-slug      ← one branch per task
 - Branch creation = task claim. If push fails, another agent claimed it first → pick another task
 - `tasks/*.md` status updates (IN_PROGRESS, READY_FOR_PR, DONE) are pushed directly to main — they are coordination metadata, not production code
 
+> **Requirement:** `main` must **not** be a protected branch. The framework pushes `tasks/*.md` status metadata directly to `main` as its coordination mechanism (`/orchestrate`, `/done`, `/add-task`, `/bug`). Branch protection on `main` will make these pushes fail and break the workflow. If your org requires protection, exclude `tasks/**` from the ruleset — otherwise leave `main` unprotected.
+
 ---
 
 ## Quality gates

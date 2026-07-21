@@ -54,14 +54,21 @@ Read:
 
 ---
 
-## Step 3 — Mandatory human checkpoint (never skip)
+## Step 3 — Advisor consultation and human checkpoint
 
-If the task involves any of the following, consult the Advisor agent first:
-- Changes to shared contracts (models, schemas, types)
-- New public API endpoints
-- Database schema changes
-- Authentication or permissions
-- Shared infrastructure changes
+**Advisor** — read `workflow.require_advisor` from `devteam.config.yml`:
+- `never` — skip the Advisor entirely.
+- `always` — consult the Advisor for every task.
+- `high_risk` (default) — consult the Advisor only if the task involves any of:
+  - Changes to shared contracts (models, schemas, types)
+  - New public API endpoints
+  - Database schema changes
+  - Authentication or permissions
+  - Shared infrastructure changes
+
+**Human checkpoint** — read `workflow.human_checkpoint` from `devteam.config.yml`:
+- `before_code` (default) or `both` — present the plan below and **wait for explicit confirmation before writing any code**. Do not proceed until confirmed.
+- `before_pr` — the approval gate is deferred to `/prepare-pr`. Present the plan below for visibility, but you may proceed to Step 4 without waiting.
 
 Present to the human:
 
@@ -83,7 +90,7 @@ Advisor recommends: [one-sentence summary]
 Questions: [genuine ambiguities, or "None"]
 ```
 
-**Wait for explicit human confirmation. Do not proceed until confirmed.**
+If `human_checkpoint` includes a pre-code gate (`before_code` or `both`): **wait for explicit human confirmation. Do not proceed until confirmed.**
 
 If the human redirects, return to Step 2 with the new direction.
 
@@ -217,6 +224,6 @@ Next: run /prepare-pr T-XXX when you're ready to review.
 - **Never open a PR** — that is `/prepare-pr`'s job
 - **Never work directly on main** — always use a worktree on the feature branch
 - **Never use `git add -A` or `git add .`** — stage specific files only
-- **Never skip the human checkpoint** — not even for small tasks
+- **Never skip the human checkpoint** when `workflow.human_checkpoint` includes a pre-code gate (`before_code` or `both`) — not even for small tasks
 - **Never touch files outside assigned folders** — write to `context/discoveries.md` instead
 - **Always write tests in the same PR** as the implementation

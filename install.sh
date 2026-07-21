@@ -31,9 +31,32 @@ if [ ! -d "$TARGET" ]; then
   exit 1
 fi
 
+# Locate the framework source.
+# - Local clone: SCRIPT_DIR already holds the framework files.
+# - `curl ... | bash`: there is no checkout next to the script, so fetch one.
+REPO_URL="https://github.com/MarianodelRio/dev-team.git"
+CLONED_TMP=""
+
+cleanup() {
+  if [ -n "$CLONED_TMP" ] && [ -d "$CLONED_TMP" ]; then
+    rm -rf "$CLONED_TMP"
+  fi
+}
+trap cleanup EXIT
+
 if [ ! -d "$SCRIPT_DIR/.claude" ]; then
-  echo "Error: run this script from the dev-team repository root." >&2
-  exit 1
+  info "No local checkout found — fetching dev-team from $REPO_URL"
+  if ! command -v git >/dev/null 2>&1; then
+    echo "Error: git is required to install dev-team remotely." >&2
+    echo "Install git, or clone the repo and run 'bash install.sh' from its root." >&2
+    exit 1
+  fi
+  CLONED_TMP="$(mktemp -d)"
+  if ! git clone --depth 1 "$REPO_URL" "$CLONED_TMP" >/dev/null 2>&1; then
+    echo "Error: failed to clone $REPO_URL" >&2
+    exit 1
+  fi
+  SCRIPT_DIR="$CLONED_TMP"
 fi
 
 info "Installing dev-team into: $TARGET"
@@ -60,6 +83,11 @@ fi
 
 # devteam.config.yml
 copy_if_missing "$SCRIPT_DIR/devteam.config.yml" "$TARGET/devteam.config.yml"
+
+# CLAUDE.md — the framework rulebook agents rely on.
+# /bootstrap later specializes it for the project; copy_if_missing never
+# overwrites an existing project CLAUDE.md.
+copy_if_missing "$SCRIPT_DIR/CLAUDE.md" "$TARGET/CLAUDE.md"
 
 # IDEA.md — write a neutral template, not the framework's own IDEA.md
 if [ -f "$TARGET/IDEA.md" ]; then
