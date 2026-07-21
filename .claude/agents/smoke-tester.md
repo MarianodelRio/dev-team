@@ -20,18 +20,26 @@ Check `smoke_test_mode` in `devteam.config.yml`:
 - `sandbox` → use fixtures from `tests/fixtures/` and test doubles
 - `live` → use real external APIs with credentials from `.env.test`
 
-### 3. Spin up the application
-Using the project's run commands (from `README.md`, `docker-compose.yml`, or detected from stack):
+### 3. Exercise the application — how depends on `project.type` in `devteam.config.yml`
+Using the project's run commands (from `README.md`, `docker-compose.yml`, or detected from stack). Translate criteria to the right medium for the project type:
+- `rest-api` / `frontend` → spin up the server, hit endpoints / drive the UI
+- `cli` → run the built binary/entrypoint with real args, assert on exit code + stdout/stderr
+- `library` → import the package in a throwaway script and call its public API
+- `data-ml` → run the pipeline/stage on fixture inputs, assert on the outputs
 
 ```bash
-# Example for Python/Docker project:
+# rest-api (Python/Docker):
 docker compose up -d --build
-# Wait for health check
 until curl -sf http://localhost:8000/health; do sleep 1; done
 
-# Example for Node project:
+# rest-api (Node):
 npm run dev &
-# Wait for ready signal
+
+# cli:
+mytool import ./tests/fixtures/sample.csv --dry-run   # assert exit 0 + expected output
+
+# library (Python):
+python -c "import mylib; print(mylib.parse('x'))"     # assert on return value
 ```
 
 ### 4. Execute each acceptance criterion

@@ -12,6 +12,11 @@ project:
   name: ""                        # Your project name
   stack: ""                       # Primary language/stack: python | typescript | go | rust | mixed
                                   # Used to configure lint/test commands and generate appropriate agents
+  type: ""                        # Project shape: rest-api | cli | library | data-ml | frontend | mixed
+                                  # Decided during /bootstrap. Drives the Testing strategy and
+                                  # Documentation plan in design.md, and how review agents branch
+                                  # (e.g. smoke tests curl an API vs. run a CLI binary; which doc file
+                                  # a task must update). Leave empty to let /bootstrap infer and confirm it.
 
 # ─────────────────────────────────────────
 # MODEL CONFIGURATION
@@ -84,6 +89,12 @@ quality:
   # Mutation test threshold (0-100). Only used if require_mutation_tests: true
   mutation_score_threshold: 80
 
+  # Modules where mutation testing always runs and coverage is held to a higher bar,
+  # regardless of require_mutation_tests. This is the concrete definition of "critical".
+  # Populated by /bootstrap from the "Testing strategy" section of design.md.
+  # Match by folder or module path, e.g. [libs/auth/, apps/api/payments/]
+  critical_modules: []
+
 # ─────────────────────────────────────────
 # COMMANDS
 # ─────────────────────────────────────────
@@ -117,6 +128,10 @@ batteries:
 
   # Generate GitHub PR and Issue templates
   github_templates: true
+
+  # Scaffold the test structure (tests/ + tests/fixtures/) decided in design.md's
+  # "Testing strategy". If false, agents create test folders ad hoc as they go.
+  test_scaffold: true
 
 # ─────────────────────────────────────────
 # TASKS

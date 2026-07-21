@@ -58,7 +58,8 @@ Delivers:
 Done when:
 - [ ] [acceptance criterion 1]
 - [ ] [acceptance criterion 2]
-- [ ] tests written and passing
+- [ ] tests written and passing (types per the Testing strategy in `design.md`)
+- [ ] [primary doc from the Documentation plan] updated (if it adds a public surface)
 
 Initial placement: tasks/[available or blocked]/
 
@@ -111,7 +112,8 @@ pr: ~
 
 **Done when:**
 - [ ] [acceptance criterion]
-- [ ] tests written and passing
+- [ ] tests written and passing (types per the Testing strategy in `design.md`)
+- [ ] [primary doc from the Documentation plan] updated (if it adds a public surface)
 ```
 
 ```bash
@@ -135,3 +137,4 @@ To start it: run /orchestrate (it will pick this up when dependencies are met)
 - **Always validate the DAG** — circular dependencies silently break the workflow
 - **Keep task size honest** — if it's clearly more than a day's work, propose splitting it
 - **Assign to the correct agent** — check folder ownership in `design.md`, not just the description
+- **Inherit the conventions** — build the "Done when" from the Testing strategy and Documentation plan in `design.md`, not a hardcoded default

@@ -87,8 +87,8 @@ pr: ~
 **Done when:**
 - [ ] acceptance criterion 1
 - [ ] acceptance criterion 2
-- [ ] tests written and passing
-- [ ] docs/api.md updated (if new endpoint)
+- [ ] tests written and passing (types per the Testing strategy in `design.md`)
+- [ ] primary doc updated (the file named in the Documentation plan — e.g. `docs/api.md`, `docs/cli.md`, `docs/usage.md`)
 ```
 
 Max 150 words in the body. Checklists, not prose.
@@ -140,10 +140,11 @@ feature/T-XXX-short-slug      ← one branch per task
 Every PR must pass before merge:
 
 **Tests**
+- Test types follow the **Testing strategy in `design.md`**; critical modules (`quality.critical_modules`) get the stricter set (integration + mutation)
 - All tests pass
 - Coverage on core modules ≥ threshold in `devteam.config.yml` (default 70%)
 - Unit tests written by implementing agent in same PR
-- No network calls in unit tests
+- No network calls in unit tests (fixtures live where the strategy says, e.g. `tests/fixtures/`)
 
 **Code quality**
 - Linting passes (tool configured per stack in `devteam.config.yml`)
@@ -164,7 +165,7 @@ Every PR must pass before merge:
 - Mutation Test Agent — for critical modules only, verifies tests catch real bugs
 
 **Documentation**
-- New endpoint → update API docs
+- New public surface → update the primary doc named in the **Documentation plan** in `design.md` (endpoint → `docs/api.md`, command → `docs/cli.md`, public API → `docs/usage.md`, etc.)
 - Architecture decision → create ADR in `docs/adr/`
 - Setup change → update README
 

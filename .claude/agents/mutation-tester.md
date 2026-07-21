@@ -10,7 +10,7 @@ Verify that the tests written in this PR actually catch real bugs — not just e
 ## When to invoke
 Invoked by the PR Reviewer only when:
 - `require_mutation_tests: true` in `devteam.config.yml`, OR
-- The task touches critical modules (auth, payments, ML inference, data integrity)
+- The task touches a **critical module** — defined concretely as any path listed in `quality.critical_modules` in `devteam.config.yml` (populated by `/bootstrap` from the Testing strategy in `design.md`). If that list is empty, fall back to the conventional critical set: auth, payments, ML inference, data integrity.
 
 Runs in parallel with other sub-agents.
 

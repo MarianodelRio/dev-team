@@ -9,8 +9,8 @@ Your job: produce a clear, readable snapshot of the current state of the project
 Read:
 - All tasks in `tasks/done/` — what has been implemented
 - All tasks in `tasks/in-progress/` and `tasks/ready-for-pr/` — what's about to land
-- `design.md` — the intended architecture
-- `docs/api.md` (if exists) — available endpoints
+- `design.md` — the intended architecture, plus its Testing strategy and Documentation plan
+- the primary doc file from the Documentation plan (`docs/api.md`, `docs/cli.md`, `docs/usage.md`, …) — available surface
 - `context/decisions.md` — key decisions made
 - `README.md` — setup instructions
 - `devteam.config.yml` — stack and configuration
@@ -41,6 +41,13 @@ Last updated: [date based on most recent done task]
 1. [setup step]
 2. [run step]
 3. [verify it's working step]
+
+---
+
+### How to test it
+
+[From the Testing strategy in design.md — how to run each test type present:]
+- [unit: command] · [integration: command] · [e2e/smoke: command]
 
 ---
 

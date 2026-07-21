@@ -1,6 +1,11 @@
 # API Reference
 
-<!-- 
+<!--
+  This is the REST-API doc template — one of several. /bootstrap generates the
+  primary doc for YOUR project type from the Documentation plan in design.md:
+  rest-api → docs/api.md · cli → docs/cli.md · library → docs/usage.md ·
+  data-ml → docs/pipeline.md. Delete the ones you don't use.
+
   This file is maintained by agents during development.
   Every new endpoint must be documented here in the same PR that implements it.
   Format: one table per resource, ordered by method (GET before POST before PUT before DELETE).

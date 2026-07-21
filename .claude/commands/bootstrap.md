@@ -100,6 +100,7 @@ Present architecture proposal (adapt detail to expertise level):
 ## Proposed Architecture
 
 **Stack:** [detected or recommended]
+**Project type:** [rest-api / cli / library / data-ml / frontend / mixed — inferred, confirm with the user]
 **Structure:** [monolith / modular monolith / microservices — with reasoning]
 
 **Modules:**
@@ -116,6 +117,8 @@ Present architecture proposal (adapt detail to expertise level):
 Does this match your vision, or should we adjust anything?
 ```
 
+The **project type** drives the Testing strategy and the Documentation plan below, so confirm it explicitly. Write the confirmed value to `project.type` in `devteam.config.yml`.
+
 Wait for response. Iterate until approved.
 
 Once approved, generate `design.md` with:
@@ -124,6 +127,28 @@ Once approved, generate `design.md` with:
 - Shared contracts (data models, API schemas)
 - Tech stack
 - Key constraints and non-negotiables
+- **Testing strategy** (see below)
+- **Documentation plan** (see below)
+
+### Testing strategy (section in design.md)
+
+Decide, based on the project type and modules:
+- **Test types per module** — unit, integration, e2e, property-based, smoke (not every module needs all).
+- **Critical modules** — the ones where a bug is expensive (auth, payments, ML inference, data integrity, core calculations). These get mutation testing and a higher coverage bar. Write this list to `quality.critical_modules` in `devteam.config.yml`.
+- **Test structure** — where tests live (`tests/` layout) and where fixtures/test doubles go (`tests/fixtures/`).
+- **Per-module coverage expectations** — the global threshold plus any stricter bar for critical modules.
+
+### Documentation plan (section in design.md)
+
+Decide, based on the project type, which docs this project keeps current and who maintains them:
+- `rest-api` → `docs/api.md` (endpoint reference)
+- `cli` → `docs/cli.md` (commands, flags, examples)
+- `library` → `docs/usage.md` (public API, install, quickstart)
+- `data-ml` → `docs/pipeline.md` (stages, inputs/outputs) + a data dictionary
+- `frontend` → `docs/ui.md` (screens/flows) or component docs
+- Always: `README.md` (audience + setup), ADRs in `docs/adr/` for architectural decisions.
+
+Name the **primary doc file** for this project explicitly — tasks and review agents reference it instead of assuming `docs/api.md`.
 
 Then proceed to Mode 3.
 
@@ -162,8 +187,10 @@ Once approved:
 1. Generate all `tasks/[status]/T-XXX-slug.md` files
    - `tasks/available/` for Phase 0 tasks with no dependencies
    - `tasks/blocked/` for all others
-2. Generate `plan.md` with the full dependency graph
-3. Proceed to Mode 4
+   - Each task's **Done when** checklist references the test types the Testing strategy assigns to that module, and the specific doc file from the Documentation plan (not a hardcoded `docs/api.md`)
+2. Include a Phase 0 task to scaffold the test structure (`tests/` + `tests/fixtures/`) if `batteries.test_scaffold` is false or the stack needs custom setup
+3. Generate `plan.md` with the full dependency graph
+4. Proceed to Mode 4
 
 ---
 
@@ -175,6 +202,11 @@ Generate specialized agents for this project's exact modules. For each major mod
 - Create `.claude/agents/[module].md` with folder ownership, commands, and domain expertise
 
 Generate `CLAUDE.md` customized for this project (replace generic content with project-specific architecture, module list, and rules).
+
+Generate the test structure and documentation from `design.md`:
+- If `batteries.test_scaffold: true` → create `tests/` and `tests/fixtures/` following the layout in the Testing strategy, with a `tests/README.md` explaining the structure and how to run each test type
+- Create the **primary doc file** named in the Documentation plan (e.g. `docs/api.md`, `docs/cli.md`, `docs/usage.md`, `docs/pipeline.md`) with a skeleton appropriate to the project type — do not assume `docs/api.md` for non-API projects
+- Ensure `quality.critical_modules` in `devteam.config.yml` matches the critical modules listed in the Testing strategy
 
 Generate batteries based on `devteam.config.yml`:
 - If `docker: true` → generate `docker-compose.yml` and `Dockerfile`

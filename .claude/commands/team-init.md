@@ -30,11 +30,12 @@ Print a state card before asking anything:
 
 Project: [name from config, or "not set"]
 Stack:   [stack from config, or "not set"]
+Type:    [project.type from config, or "not set"]
 Stage:   [see stage rules below]
 
 Docs
   IDEA.md     [empty / has content]
-  design.md   [missing / exists]
+  design.md   [missing / exists] [· testing strategy ✓/✗ · doc plan ✓/✗ if design.md exists]
   plan.md     [missing / exists]
 
 Tasks

@@ -129,10 +129,10 @@ Work in the worktree. Follow strictly:
 - Do not modify shared contracts without explicit human approval
 - Do not touch files outside assigned folders — even if you see an improvement
 
-**Write tests as you implement**, not after:
+**Write tests as you implement**, not after — following the **Testing strategy in `design.md`** for this module (it defines which test types this module needs and whether it's a critical module):
 - Unit tests for every new function
-- Integration tests for new endpoints or cross-module interactions
-- Tests must not make real network calls (use fixtures)
+- The test types the strategy assigns to this module (integration, e2e, property-based as applicable) — critical modules get the stricter set
+- Put fixtures/test doubles where the strategy says (e.g. `tests/fixtures/`); tests must not make real network calls
 
 If you discover something that affects another module, write it to `context/discoveries.md` — do not touch the other module.
 

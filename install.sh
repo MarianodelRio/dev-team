@@ -180,6 +180,17 @@ if [ ! -f "$TARGET/docs/adr/.gitkeep" ]; then
 fi
 success "docs/adr/"
 
+# The smoke-test agent assumes tests/fixtures/ exists. Create the skeleton now;
+# /bootstrap fills in the real layout from design.md's Testing strategy.
+info "Creating test folders..."
+mkdir -p "$TARGET/tests/fixtures"
+for dir in tests tests/fixtures; do
+  if [ ! -f "$TARGET/$dir/.gitkeep" ]; then
+    touch "$TARGET/$dir/.gitkeep"
+  fi
+done
+success "tests/ with fixtures/"
+
 # ── Done ───────────────────────────────────────────────────────────────────
 
 echo ""

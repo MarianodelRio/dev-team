@@ -31,13 +31,15 @@ Invoked by the PR Reviewer as part of every PR review.
 - No hardcoded values that should be configuration
 
 ### Test quality
+- The test **types** required by the Testing strategy in `design.md` for this module are present (e.g. a critical module needs integration/mutation, not just unit)
 - Every new public function has at least one test
 - Tests are independent (no test depends on another test's side effects)
 - Test names describe what they test and what the expected behavior is
+- Fixtures/test doubles live where the Testing strategy says (e.g. `tests/fixtures/`); no real network calls in unit tests
 - No `assert True` or vacuous assertions
 
 ### Documentation
-- New API endpoints appear in `docs/api.md` (if it exists)
+- The **primary doc file** named in the Documentation plan in `design.md` was updated when this task adds a matching public surface (endpoint → `docs/api.md`, command → `docs/cli.md`, public API → `docs/usage.md`, etc.) — do not assume `docs/api.md` for non-API projects
 - Non-obvious decisions have a comment or entry in `context/decisions.md`
 - ADR created if an architectural decision was made
 
@@ -83,7 +85,7 @@ or
 ### Documentation
 ✅ Docs updated
 or
-⚠️ docs/api.md not updated — new endpoint [POST /foo] not documented
+⚠️ [primary doc file from Documentation plan] not updated — new [endpoint/command/API] [name] not documented
 
 ### Verdict
 APPROVED | BLOCKED: [N blockers] | WARNINGS: [N warnings]
