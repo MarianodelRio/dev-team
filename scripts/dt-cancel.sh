@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# dt-cancel.sh — abandon a task cleanly. Parks it in tasks/blocked/ as cancelled
+# dt-cancel.sh — abandon a task cleanly. Parks it in tasks/cancelled/ as cancelled
 # (audit trail), tears down its worktree, and optionally deletes its branch.
 #
 #   dt-cancel.sh T-XXX [--delete-branch] [--reason "why"] [--dry-run]
@@ -28,13 +28,13 @@ FILE="$(find_task_file "$ID")" || die "$ID not found in tasks/"
 case "$FILE" in *"/tasks/done/"*) die "$ID is already DONE and cannot be cancelled" ;; esac
 BRANCH="$(task_branch_from_file "$FILE")"
 WT="$(dt_worktree_path "$ID")"
-NEWFILE="$REPO_ROOT/tasks/blocked/$(basename "$FILE")"
+NEWFILE="$REPO_ROOT/tasks/cancelled/$(basename "$FILE")"
 
 if [ "$DRY" -eq 1 ]; then
   log "DRY-RUN cancel $ID"
   log "  remove worktree : $WT"
   log "  delete branch   : $([ "$DELBR" -eq 1 ] && echo "yes ($BRANCH)" || echo no)"
-  log "  move            : $(basename "$FILE") → blocked (status: cancelled)"
+  log "  move            : $(basename "$FILE") → cancelled (status: cancelled)"
   exit 0
 fi
 
@@ -54,11 +54,11 @@ set_task_field "$FILE" status cancelled
   echo "Cancelled on $(date -u +%Y-%m-%d). Reason: ${REASON:-not specified}"
 } >> "$FILE"
 
-mkdir -p "$REPO_ROOT/tasks/blocked"
+mkdir -p "$REPO_ROOT/tasks/cancelled"
 mv "$FILE" "$NEWFILE"
 git -C "$REPO_ROOT" add "$FILE" "$NEWFILE"
 git -C "$REPO_ROOT" commit -m "chore($ID): cancel task" --quiet
 git -C "$REPO_ROOT" push origin main --quiet
-ok "$ID cancelled (parked in tasks/blocked/)"
+ok "$ID cancelled (parked in tasks/cancelled/)"
 
 refresh_index

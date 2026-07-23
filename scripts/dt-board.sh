@@ -83,13 +83,20 @@ json_arr() { # space-separated ids → JSON array
 js() { local v="${1//\\/}"; printf '%s' "${v//\"/}"; }
 
 # ── critical_path_next: available + unclaimed, most unblocks, smallest id ─────
+# Extract numeric part of an ID (T-001 → 1, B-42 → 42) for numeric tiebreaking.
+id_num() { printf '%d' "${1#*-}"; }
+
 CRIT_NEXT=""
 CRIT_SCORE=-1
 for id in $ALL_IDS; do
   [ "${T_FOLDER[$id]}" = "available" ] || continue
   [ "$(claimed_remote "$id")" = "false" ] || continue
   n=0; for u in ${UNBLOCKS[$id]:-}; do n=$((n+1)); done
-  if [ "$n" -gt "$CRIT_SCORE" ]; then CRIT_SCORE=$n; CRIT_NEXT="$id"; fi
+  if [ "$n" -gt "$CRIT_SCORE" ]; then
+    CRIT_SCORE=$n; CRIT_NEXT="$id"
+  elif [ "$n" -eq "$CRIT_SCORE" ] && [ -n "$CRIT_NEXT" ]; then
+    [ "$(id_num "$id")" -lt "$(id_num "$CRIT_NEXT")" ] && CRIT_NEXT="$id"
+  fi
 done
 
 # ── Write .dt-index.json ─────────────────────────────────────────────────────
@@ -123,6 +130,7 @@ done
   echo "    \"pr_open\": $(cnt pr-open),"
   echo "    \"done\": $(cnt done),"
   echo "    \"blocked\": $(cnt blocked),"
+  echo "    \"cancelled\": $(cnt cancelled),"
   echo "    \"critical_path_next\": \"$CRIT_NEXT\""
   echo "  }"
   echo "}"

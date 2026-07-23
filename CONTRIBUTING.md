@@ -40,13 +40,15 @@ Open an issue tagged `enhancement`. Describe the problem you're solving, not jus
 
 ### Commit style
 
-Use conventional commits:
+**Human contributions to this repository** use conventional commits:
 ```
 feat: add /restart command to reset in-progress tasks
 fix: orchestrator picks blocked tasks when no available tasks exist
 docs: clarify branch policy in CLAUDE.md
 chore: update devteam.config.yml defaults
 ```
+
+Note: the framework generates two different commit formats inside the projects that use dev-team — `T-XXX: description` for implementation commits (by the Orchestrator) and `chore(T-XXX): ...` for status transitions (by the dt-* scripts). Those are intentional framework conventions; this conventional-commits rule applies only to contributions to the dev-team repo itself.
 
 ## What we are looking for
 

@@ -48,7 +48,6 @@ fi
 UNBLOCKED=""
 for f in "$REPO_ROOT/tasks/blocked/"*.md; do
   [ -e "$f" ] || continue
-  [ "$(task_field "$f" status)" = "cancelled" ] && continue
   deps="$(task_depends_on "$f")"
   ready=1
   for d in $deps; do [ -n "$d" ] || continue; is_done "$d" || { ready=0; break; }; done

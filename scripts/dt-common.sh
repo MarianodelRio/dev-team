@@ -71,7 +71,7 @@ dt_project_name() {
 dt_worktree_path() { echo "$REPO_ROOT/../$(dt_project_name)-$1"; }
 
 # ── Task file discovery ──────────────────────────────────────────────────────
-TASK_FOLDERS="available in-progress ready-for-pr pr-open done blocked"
+TASK_FOLDERS="available in-progress ready-for-pr pr-open done blocked cancelled"
 
 # Echo the path of the single task file for ID, optionally restricted to a folder.
 find_task_file() {

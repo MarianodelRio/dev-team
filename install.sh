@@ -105,29 +105,65 @@ fi
 mkdir -p "$TARGET/docs"
 copy_if_missing "$SCRIPT_DIR/docs/WORKFLOWS.md" "$TARGET/docs/WORKFLOWS.md"
 
-# IDEA.md — write a neutral template, not the framework's own IDEA.md
+# IDEA.md — write the standard template (matches the framework's own IDEA.md)
 if [ -f "$TARGET/IDEA.md" ]; then
   skip "IDEA.md"
 else
   cat > "$TARGET/IDEA.md" <<'EOF'
-# Project Idea
+# My Idea
 
 <!--
-  Describe what you want to build. A few sentences is enough to start.
-  Run /team-init in Claude Code to set up the project, then /bootstrap to start the design session.
+Welcome to dev-team.
+
+You don't need to be technical to fill this in.
+Answer what you can — we'll figure out the rest together in /bootstrap.
+The more honest and specific you are, the better the result.
 -->
 
 ## What problem does this solve?
 
-[Describe the problem or opportunity]
+<!--
+Describe the frustration, gap, or opportunity.
+Example: "I spend hours every week manually copying data between two systems that don't talk to each other."
+Example: "There's no simple tool for X that doesn't require Y."
+-->
 
-## Who is the first user?
 
-[You? A team? The public?]
 
-## What must work perfectly on day one?
+## Who uses it?
 
-[The one thing that matters most]
+<!--
+Who is the main user? How often? In what context?
+Example: "Me and my team of 3, daily, during morning standup."
+Example: "Small restaurant owners who aren't technical."
+-->
+
+
+
+## How does it work at a high level?
+
+<!--
+Describe the core flow in plain language. What does the user do? What does the system do?
+Example: "User logs in, uploads a CSV, the system processes it and sends an email with the results."
+-->
+
+
+
+## Is there anything technical you already know you want?
+
+<!--
+Optional. Only fill this if you have specific technical requirements or preferences.
+Example: "It needs to work on mobile." / "Must integrate with Slack." / "I already have an API for X."
+-->
+
+
+
+## What is definitely NOT part of this?
+
+<!--
+Optional but very useful. What should this never do or include?
+Example: "No subscriptions — it must be a one-time purchase." / "No cloud — everything runs locally."
+-->
 EOF
   success "IDEA.md (template)"
 fi
@@ -137,7 +173,7 @@ fi
 echo ""
 info "Creating task folders..."
 
-for dir in available in-progress ready-for-pr pr-open done blocked; do
+for dir in available in-progress ready-for-pr pr-open done blocked cancelled; do
   mkdir -p "$TARGET/tasks/$dir"
   if [ ! -f "$TARGET/tasks/$dir/.gitkeep" ]; then
     touch "$TARGET/tasks/$dir/.gitkeep"

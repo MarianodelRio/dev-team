@@ -57,7 +57,7 @@ Wait for explicit "yes". Any other response aborts.
 
 ## Step 4 — Execute cancellation
 
-Run the cancel script with the choices from the checkpoint. It syncs main, removes the worktree, optionally deletes the branch, appends a `## Cancelled` note, and parks the task in `tasks/blocked/` as `cancelled` — committed and pushed:
+Run the cancel script with the choices from the checkpoint. It syncs main, removes the worktree, optionally deletes the branch, appends a `## Cancelled` note, and parks the task in `tasks/cancelled/` as `cancelled` — committed and pushed:
 
 ```bash
 # Add --delete-branch only if the user chose option A (discard work).
@@ -86,5 +86,5 @@ If the user chose to keep the branch (option B), omit `--delete-branch`.
 
 - **Never cancel without explicit "yes"** — this operation discards work
 - **Always warn about dependent tasks** before cancelling
-- **Cancelled tasks go to blocked/**, not deleted — preserves audit trail
+- **Cancelled tasks go to `tasks/cancelled/`**, not deleted — preserves audit trail
 - **Always clean up worktrees** — orphaned worktrees break future orchestrations

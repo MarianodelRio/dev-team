@@ -24,7 +24,7 @@ Regenerate and read the index — it already resolves dependencies, marks claime
 bash scripts/dt-board.sh
 ```
 
-Read `.dt-index.json`. Candidate tasks are those with `folder: "available"` and `claimed_remote: false`.
+Read `.dt-index.json`. Candidate tasks are those with `folder: "available"`, `claimed_remote: false`, and `agent` not equal to `"TBD"`. Tasks with `agent: TBD` are bug investigation tasks owned by `/bug` — skip them.
 
 **Selection criteria** (in order):
 1. `folder: available` (dependencies already resolved by the board)
@@ -176,9 +176,10 @@ git push origin feature/T-XXX-short-slug
 - [decisions made and why]
 ```
 
-2. Run the ready script — it removes the worktree, syncs main, moves the file to `ready-for-pr/`, and commits+pushes the status on main:
+2. **Return to the main repo before running the script** — `dt-ready.sh` uses `git rev-parse --show-toplevel` to locate the repo; running it from inside the worktree points it at the wrong directory and breaks `sync_main()`:
 
 ```bash
+cd ../[project-name]          # ← back to main repo, not the worktree
 bash scripts/dt-ready.sh T-XXX
 ```
 
