@@ -31,7 +31,7 @@ Open an issue tagged `enhancement`. Describe the problem you're solving, not jus
 
 3. If you add or change a command (`.claude/commands/`), update `CLAUDE.md` and `README.md` to reflect it.
 
-4. If you add an agent (`.claude/agents/`), document its folder ownership and responsibilities.
+4. If you add an agent (`.claude/agents/`), document its folder ownership, responsibilities, and which phase of the orchestration pipeline it belongs to.
 
 5. Open a PR against `main` with a clear description of:
    - What the change does
@@ -50,11 +50,24 @@ chore: update devteam.config.yml defaults
 
 Note: the framework generates two different commit formats inside the projects that use dev-team — `T-XXX: description` for implementation commits (by the Orchestrator) and `chore(T-XXX): ...` for status transitions (by the dt-* scripts). Those are intentional framework conventions; this conventional-commits rule applies only to contributions to the dev-team repo itself.
 
+### Agent roles
+
+Agents in dev-team have specific roles in the orchestration pipeline:
+
+- **Coordinator**: the orchestrator — one per /orchestrate session
+- **Phase agents**: architect (phase 1), planner (phase 2), coder (phase 3)
+- **Shared resource**: advisor — any agent can invoke it
+- **Review agents**: code-quality, security, adversarial, smoke-tester, mutation-tester (phase 4)
+
+When adding a new agent, define clearly which phase it belongs to, who invokes it,
+and what its output format is. Agents should never exceed their phase scope
+(e.g., a planner should not write production code).
+
 ## What we are looking for
 
-- New commands that fit the `IDEA → design → plan → implement → PR → done` lifecycle
-- Improvements to existing agents (orchestrator, pr-reviewer, etc.)
-- Better defaults in `devteam.config.yml`
+- New phase agents that fit the coordinator pattern (analyze → plan → code → review)
+- Improvements to existing agents within their defined role
+- Better defaults and timeout values in `devteam.config.yml`
 - Documentation fixes and clarifications
 - Examples: real projects built with dev-team as showcase
 

@@ -9,18 +9,35 @@ From a vague idea to production code — specialized agents working in parallel,
 ## How it works
 
 ```
-Your idea  →  design session  →  tasks  →  parallel agents  →  reviewed PRs  →  shipped code
+Your idea  →  design session  →  tasks  →  parallel orchestrators  →  reviewed PRs  →  shipped code
 ```
 
 1. Write your idea in `IDEA.md` (no technical knowledge required)
 2. Run `/team-init` — configure your project and stack
 3. Run `/bootstrap` — collaborative design conversation that generates architecture, plan, and tasks
-4. Run `/orchestrate` — an agent picks the best available task, presents a plan, waits for your approval, then implements
-5. Run `/prepare-pr T-XXX` — review with specialized sub-agents (scaled to the change)
-6. Merge on GitHub, run `/done T-XXX` — marks done, tells you what's now unblocked
+4. Run `/orchestrate` — picks the best available task, analyzes it, plans, codes, reviews, and opens a PR automatically. Run in multiple chats for parallel tasks.
+5. Review and merge the PR on GitHub
+6. Run `/done T-XXX` — marks done, tells you what's now unblocked
 7. Repeat steps 4–6 until the plan is done — run `/cheatsheet` any time to see what's next
 
-You can run steps 4–6 for several tasks at once in **parallel chats** — each works on its own branch in its own git worktree, and the framework guarantees two chats never grab the same task.
+You can run step 4 for several tasks at once in **parallel chats** — each works on its own branch in its own git worktree, and the framework guarantees two chats never grab the same task.
+
+---
+
+## Architecture
+
+Each `/orchestrate` session is a coordinator that delegates to specialized sub-agents:
+
+| Phase | Sub-agent | What it does |
+|-------|-----------|-------------|
+| 1 — Analysis | Architect | Validates the task against current project state |
+| 2 — Planning | Planner | Produces a concrete implementation plan |
+| 3 — Coding | Coder | Implements in an isolated git worktree |
+| 4 — Review | code-quality, security, adversarial, smoke-tester, mutation-tester (parallel) | Full quality review |
+
+The Advisor is available to any sub-agent for design decisions with genuine trade-offs.
+
+One human checkpoint: after analysis, before code. Everything else is autonomous.
 
 ---
 
@@ -41,10 +58,9 @@ You can run steps 4–6 for several tasks at once in **parallel chats** — each
 2. Clone it locally and open it in Claude Code
 3. Run `/team-init` — configure your project, set your stack, describe your idea
 4. Run `/bootstrap` — design conversation → architecture + tasks generated
-5. Run `/orchestrate` — pick and implement the best available task
-6. Run `/prepare-pr T-XXX` — review and open the PR
-7. Merge the PR on GitHub, then run `/done T-XXX` — marks it done and unblocks the next tasks
-8. Repeat steps 5–7 until the plan is complete — lost? run `/cheatsheet`
+5. Run `/orchestrate` — picks, analyzes, plans, codes, reviews, and opens PR automatically
+6. Merge the PR on GitHub, then run `/done T-XXX` — marks it done and unblocks the next tasks
+7. Repeat steps 5–6 until the plan is complete — lost? run `/cheatsheet`
 
 ### Existing project
 
@@ -98,6 +114,8 @@ dev-team adapts to where you are:
 
 **Instant board** — A generated task index gives every command an at-a-glance view of what's done, in progress, claimed elsewhere, and what to do next (`/cheatsheet`).
 
+**Coordinator pattern** — Each orchestrator session delegates to specialized sub-agents: a Planner for the implementation plan, a Coder for the actual code, and five parallel reviewers for quality. One coordinator, many specialists.
+
 **Batteries included** — Docker, CI, .env, .gitignore, security policy, PR templates — all generated automatically for your stack. Optional auto-merge closes the loop for low-risk PRs.
 
 **Model-agnostic configuration** — Configure which model handles reasoning vs. implementation vs. fast tasks in `devteam.config.yml`.
@@ -109,19 +127,19 @@ dev-team adapts to where you are:
 ## Commands
 
 ```
-/team-init          Configure the project and show current state — start here
-/bootstrap          Start or resume the design conversation
-/orchestrate        Pick and implement the next available task
-/prepare-pr T-XXX   Full review and open PR
-/done T-XXX         Mark task done after merge, clean up branch
-/status             Full project status board
-/add-task           Design and add a new task mid-project
-/guide              Current state — what's built, how to test it
-/cheatsheet         What to do next, contextual to the board (global or /cheatsheet T-XXX)
-/explore [topic]    Design exploration before coding
-/bug [description]  Investigate and fix a bug
-/restart T-XXX      Recover a task stuck in-progress (agent crashed)
-/cancel T-XXX       Abandon a task cleanly
+/team-init              Configure the project and show current state — start here
+/bootstrap              Start or resume the design conversation
+/orchestrate [T-XXX]    Picks a task and carries it end-to-end: analyze → plan → code → review → PR
+/bug [description]      Investigate a bug, find root cause, create fix task
+/explore [topic]        Investigate an implementation or behavior in the project
+/done T-XXX             Mark task done after merge, unblock dependents
+/add-task               Design and add a new task mid-project
+/status                 Full project status board
+/guide                  Current state — what's built, how to test it
+/cheatsheet             What to do next, contextual to the board (global or /cheatsheet T-XXX)
+/restart T-XXX          Recover a task stuck in-progress (agent crashed)
+/cancel T-XXX           Abandon a task cleanly
+/prepare-pr T-XXX       Manual escape hatch for tasks in ready-for-pr outside normal flow
 ```
 
 ---

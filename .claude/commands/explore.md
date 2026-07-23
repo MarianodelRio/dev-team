@@ -1,72 +1,89 @@
-You are executing the `/explore` command for dev-team.
+You are the Orchestrator running /explore.
 
-**Input:** `$ARGUMENTS` — a design question or topic to explore
+Input: $ARGUMENTS — question or area to investigate.
 
-Your job: evaluate options and produce a clear recommendation before any code is written. No production code output.
+Your job: thoroughly investigate an implementation, behavior, or technical decision
+in the project and produce a report with findings and recommendations.
+No production code. No tasks. Investigation only.
 
 ---
 
 ## Step 1 — Load context
 
 Read:
-- `design.md` — current architecture and constraints
-- `plan.md` — module ownership
-- `CLAUDE.md` — folder rules and protected files
-- Relevant agent files for modules involved
+- `design.md` — architecture and modules involved
+- `plan.md` — phases and dependencies
+- `context/decisions.md` — decisions already made relevant to the topic
+- `context/discoveries.md` — relevant cross-agent findings
+- Code files relevant to the topic being investigated
 
 ---
 
 ## Step 2 — Assess complexity
 
-**Standard implementation decision** (known pattern, no module boundary impact, no contract changes):
-→ Proceed to Step 3 with your own analysis.
+Does the question involve:
+- Shared modules or contracts?
+- Changes to boundaries or dependencies?
+- Long-term consequences?
+- Genuine trade-offs with no obvious answer?
 
-**Architectural impact** (changes module boundaries, affects shared contracts, involves long-term consequences, genuine trade-offs):
-→ Invoke the Advisor agent first:
-```
-Agent(
-  subagent_type: "advisor",
-  prompt: "Context: [modules involved, current constraints]\nQuestion: [specific decision]\nOutput: options + trade-offs + recommendation"
-)
-```
+→ Yes to any: launch **Architect** as sub-agent first.
+→ There is a technical decision with trade-offs: launch **Advisor** as well.
+→ It is just reading code / behavior: the Orchestrator investigates alone.
 
 ---
 
-## Step 3 — Output
+## Step 3 — Launch sub-agents if applicable
+
+Architect (if it involves architecture):
+- Input: the question + relevant modules + design.md + context/
+- Expected output: architectural impact analysis, affected contracts, DAG risks
+
+Advisor (if there are decision trade-offs):
+- Input: the question + Architect's analysis + project constraints
+- Expected output: options + trade-offs + opinionated recommendation
+
+---
+
+## Step 4 — Produce report
 
 ```
-## Question
-[Restate clearly]
+## Exploration — [topic]
+[date]
 
-## Context
-[What's already fixed — contracts, module boundaries, constraints from design.md]
+### Context
+[What currently exists — real state of the code/behavior]
 
-## Options
+### Findings
+[What was found — specific, with references to file:line]
 
-### Option A — [name]
+### Options
+[If there are several ways to approach the topic:]
+
+#### Option A — [name]
 [Description]
 Pros: ...
 Cons: ...
+Risk: ...
 
-### Option B — [name]
-[Description]
-Pros: ...
-Cons: ...
+#### Option B — [name]
+...
 
-## Recommendation
-[Clear, opinionated answer with justification]
+### Recommendation
+[Opinionated and justified answer. Not "it depends" — a real recommendation.]
 
-## Next steps
+### Next steps
 - Does this need an ADR? → create in docs/adr/
 - Does this need a contract change? → requires Architect approval
-- Does this need a new task? → run /add-task
+- Does this generate a new task? → run /add-task
+- Is this informational only? → nothing to do
 ```
 
 ---
 
 ## Rules
 
-- No production code — pseudocode only to illustrate an option
-- Never recommend a violation of the module DAG
-- If an ADR is warranted (significant architectural decision), say so explicitly
-- If this reveals a gap in tasks/, flag it
+- No production code — pseudocode only to illustrate options
+- Never recommend violating the module DAG
+- If the exploration reveals a gap in tasks/, flag it
+- If the exploration requires changes to shared contracts: flag it and do NOT modify them

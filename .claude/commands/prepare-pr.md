@@ -1,29 +1,31 @@
-You are executing the `/prepare-pr` command for dev-team.
+You are the Orchestrator running /prepare-pr in escape hatch mode.
 
-**Input:** `$ARGUMENTS` — task ID (e.g., `T-026`)
+⚠️ This command is an escape hatch. In the normal dev-team v2 flow,
+reviewers run automatically at the end of /orchestrate.
+Use this only for tasks that reached ready-for-pr manually
+(tasks migrated from v1, recovered orphaned worktrees, etc.).
 
-Your job: review the implementation thoroughly using specialized sub-agents, fix trivial issues, and open the PR. You never mark tasks DONE — that is `/done`'s job.
+Input: $ARGUMENTS — task ID (T-XXX or B-XXX)
+
+Your job: complete the review and open the PR for a task that is already
+implemented in its branch.
 
 ---
 
-## Step 1 — Load context
+## Step 1 — Verify task
 
-Read:
-- `tasks/ready-for-pr/T-XXX-slug.md` (or find it if not in ready-for-pr/)
-- The assigned agent file in `.claude/agents/`
-- `design.md` — relevant sections for this task's modules
-- `context/decisions.md` — entries from this task
+Read `tasks/ready-for-pr/T-XXX-slug.md` (or find it if not in ready-for-pr/).
 
 If the task is not in `status: ready-for-pr`, warn:
 ```
-⚠️ T-XXX is currently [status], not ready-for-pr.
-Are you sure you want to prepare a PR for it?
+⚠️ T-XXX is currently in [status], not ready-for-pr.
+Do you want to prepare the PR anyway?
 ```
 Wait for explicit confirmation.
 
 ---
 
-## Step 2 — Fetch and rebase
+## Step 2 — Rebase
 
 ```bash
 git fetch origin
@@ -31,112 +33,81 @@ git checkout feature/T-XXX-short-slug
 git rebase origin/main
 ```
 
-**If merge conflicts:**
-- Mechanical conflicts (whitespace, non-overlapping additions, import order) → resolve automatically
-- Design conflicts (shared contracts, business logic, schema) → **STOP**:
+If there are conflicts:
+- Mechanical (whitespace, unrelated imports, context/ append): resolve alone
+- Design (contracts, business logic, schema): stop and present to the user:
   ```
-  ⚠️ Merge conflict in [file] requires a design decision.
-  [Describe the conflict]
-  How should this be resolved?
+  ⚠️ Design conflict in [file:line]
+  
+  In main ([T-YYY already merged]):
+  [code]
+  
+  In this branch (T-XXX):
+  [code]
+  
+  This implies [concrete trade-off]. How should we resolve it?
   ```
-  Wait for human direction.
+  Wait for direction. Apply. Continue rebase.
 
 ---
 
-## Step 3 — Run full verification
+## Step 3 — Verification
 
 ```bash
-# Tests + coverage
 [test command from devteam.config.yml]
-
-# Lint + format
-[lint command]
-
-# Type check
-[type check command]
+[lint command from devteam.config.yml]
+[type_check command from devteam.config.yml]
 ```
 
-If anything fails:
-- **Trivial** (unused import, missing type annotation, formatting) → fix automatically
-- **Behavioral** (test failure, logic error) → **STOP** and report the specific failure
+If anything fails: report the specific error and stop. Do not fix behavioral failures automatically.
 
 ---
 
-## Step 3.5 — Select the review profile
+## Step 4 — Reviewers in parallel
 
-Read `quality.review_profile` from `devteam.config.yml` and inspect the diff:
+Read `quality.review_profile` in `devteam.config.yml`. Inspect the diff:
 
 ```bash
 git diff --name-only origin/main
 ```
 
-- `full` → run all sub-agents (4a–4e).
-- `fast` → run only **4a Code Quality** + **4c Security**; skip adversarial, smoke, mutation.
-- `auto` → if every changed path is docs/config (`*.md`, `docs/**`, `*.yml`, `*.yaml`, `*.toml`, `*.cfg`, `.env.example`) → `fast`; if any code or test file changed → `full`.
+- `full` → all sub-agents (4a–4e)
+- `fast` → code-quality + security only
+- `auto` → if only docs/config changed → fast; if any code changed → full
 
-**Safety override:** if the diff touches any protected file (shared contracts, DB schema, CI config) → force `full`, regardless of profile.
+Safety override: if the diff touches protected files or shared contracts → force full.
 
-State which profile was selected and why before launching.
+Launch in parallel:
 
----
+**4a. code-quality** — scope, patterns from design.md, architecture, clarity
 
-## Step 4 — Launch review sub-agents in parallel
+**4b. adversarial** — finds what the others missed; activates on unanimous approval
 
-Invoke the sub-agents for the selected profile simultaneously. Each runs independently.
+**4c. security** — OWASP Top 10 on the diff. Severity: BLOCKER | WARNING | INFO
 
-**4a. Code Quality Agent**
-Review: scope adherence, patterns from `design.md`, no business logic in HTTP layer, no magic numbers, functions ≤ ~50 lines, error handling at boundaries only.
+**4d. smoke-tester** — "Done when" criteria from the task file against the running app
 
-**4b. Adversarial Agent**
-Actively look for what the other reviewers might have missed. If all other agents approve, this agent's job is to find the flaw. Check: edge cases not covered by tests, hidden assumptions, subtle logic errors, performance issues under load.
-
-**4c. Security Agent**
-Check the diff against OWASP Top 10 relevant to this stack:
-- Injection (SQL, command, path traversal)
-- Broken authentication / exposed credentials
-- Sensitive data exposure (secrets in logs, responses)
-- Broken access control
-- Security misconfiguration
-- Insecure deserialization
-Report severity: BLOCKER | WARNING | INFO
-
-**4d. Smoke Test Agent**
-Using `smoke_test_mode` from `devteam.config.yml`:
-- Spin up the application
-- Execute each acceptance criterion from the task file against the running app
-- For external APIs: use sandbox fixtures or live test credentials per config
-- Report: PASS / FAIL per criterion
-
-**4e. Mutation Test Agent** (only if `require_mutation_tests: true` OR this task touches critical modules)
-- Introduce deliberate minimal bugs in the changed code
-- Re-run tests
-- Report mutation score
-- Flag tests that did not catch mutations
+**4e. mutation-tester** — ONLY if `require_mutation_tests: true` OR touches critical modules
 
 ---
 
-## Step 5 — Synthesize results
+## Step 5 — Synthesis
 
-Collect all sub-agent outputs. Determine overall verdict:
-
-**BLOCKER** — do not open PR:
+BLOCKER (do not open PR):
 - Any test failure not fixed in Step 3
-- Security Agent finds BLOCKER severity issue
-- Smoke Test Agent: acceptance criterion FAIL
-- Mutation score below threshold (if applicable)
+- security: BLOCKER
+- smoke-tester: criterion FAIL
+- mutation score below threshold (if applicable)
 
-**WARNING** — open PR but flag prominently:
-- Security Agent finds WARNING severity issue
-- Mutation score below ideal but above minimum
+WARNING (open PR with flags):
+- security: WARNING
+- mutation score below ideal but above minimum
 
-**APPROVED** — proceed:
-- All checks pass
-- No blockers
-- Adversarial Agent either found nothing or found only cosmetic issues
+APPROVED: proceed.
 
-If there are BLOCKERs, report them and **STOP**:
+If there are BLOCKERs, report and stop:
 ```
-⛔ PR blocked — issues must be resolved first:
+⛔ PR blocked — resolve these before continuing:
 
 [Blocker 1]: [description + file:line]
 [Blocker 2]: [description + file:line]
@@ -145,87 +116,55 @@ Suggested fixes:
 - [fix 1]
 - [fix 2]
 
-Fix these in the feature branch and run /prepare-pr again.
+Fix in the branch and run /prepare-pr T-XXX again
 ```
 
 ---
 
-## Step 6 — Open the PR
+## Step 6 — Open PR
 
-**Human checkpoint** — read `workflow.human_checkpoint` from `devteam.config.yml`:
-- `before_pr` or `both` — present the synthesized result (what was implemented + the sub-agent verdicts from Step 5) and **wait for explicit confirmation before opening the PR**.
-- `before_code` — the approval gate already happened in `/orchestrate`; proceed directly.
+Read `pr_mode` in `devteam.config.yml`.
 
-Check `pr_mode` in `devteam.config.yml`:
-
-**If `pr_mode: automatic`:**
+If `pr_mode: automatic`:
 ```bash
 gh pr create \
   --title "T-XXX: [task title]" \
   --body "$(cat <<'EOF'
 ## Summary
-[3 bullets: what was implemented]
-
-## Changes
-[modules/files touched and why]
+- [what was implemented — bullet 1]
+- [what was implemented — bullet 2]
+- [what was implemented — bullet 3]
 
 ## Acceptance criteria
 - [x] criterion 1
 - [x] criterion 2
 
 ## Review notes
-[From Code Quality Agent: ...]
-[From Security Agent: ...]
-[From Smoke Test Agent: all criteria PASS]
-[Adversarial Agent: [found nothing / found X — already fixed]]
+[Code Quality: ...]
+[Security: ...]
+[Smoke Tests: X/Y criteria PASS]
+[Adversarial: found nothing / found X — already fixed]
 
 ## Risks
-[Any warnings or non-obvious risks flagged by sub-agents]
+[flagged warnings or "None"]
 
-🤖 Generated with [dev-team](https://github.com/MarianodelRio/dev-team)
+🤖 Generated with dev-team
 EOF
 )"
 ```
 
-**If `pr_mode: manual`:**
-Print the exact `gh pr create` command for the human to run themselves.
-
----
-
-## Step 6b — Auto-merge (optional)
-
-Read `workflow.auto_merge` from `devteam.config.yml`. Only act if it is `low_risk` **and** `pr_mode: automatic`.
-
-Enable auto-merge **only** when ALL of these hold:
-- Verdict is APPROVED with no warnings (Step 5)
-- The diff touches no protected files and no shared contracts
-- Task size is ≤ M
-
-```bash
-gh pr merge <pr-number> --auto --squash
-```
-
-Otherwise (or if `auto_merge: off`) skip this step — the human merges manually. Never auto-merge a PR touching protected files or contracts, or with any warning/blocker.
+If `pr_mode: manual`: print the exact command for the user to run.
 
 ---
 
 ## Step 7 — Update task file
 
-Move task file: `tasks/ready-for-pr/` → `tasks/pr-open/`
+Move `tasks/ready-for-pr/` → `tasks/pr-open/`.
 
 Update frontmatter:
 ```yaml
 status: pr-open
 pr: "[PR URL]"
-```
-
-Append to task file:
-```markdown
-## PR Review Notes
-- Code Quality: [summary]
-- Security: [summary or "no issues found"]
-- Smoke Tests: [X/Y criteria passed]
-- Adversarial: [summary or "no issues found"]
 ```
 
 ```bash
@@ -236,32 +175,26 @@ git push origin main
 
 ---
 
-## Step 8 — Human review summary
-
-Output a structured summary for the human reviewing the PR:
+## Step 8 — Human reviewer summary
 
 ```
 ## PR Ready for Review — T-XXX
 
-**What to focus on:**
-[2-3 specific things worth human attention — edge cases, design decisions, anything sub-agents flagged as uncertain]
+What to review:
+[2-3 specific points that deserve human attention]
 
-**Acceptance criteria:** [X/X passed in smoke tests]
-**Security:** [clean / warnings: ...]
-**Test quality:** [mutation score if run, or coverage delta]
-**Adversarial finding:** [none / fixed: ...]
+Acceptance criteria: [X/X passed]
+Security: [clean / warnings: ...]
+Adversarial: [no findings / fixed: ...]
 
-**To merge:** approve on GitHub and run /done T-XXX
-[If auto-merge was enabled: "Auto-merge is ON — the PR merges itself once checks pass; then run /done T-XXX."]
+To merge: approve on GitHub and run /done T-XXX
 ```
 
 ---
 
 ## Rules
 
-- **Never mark the task DONE** — that is `/done`'s job after the human merges
-- **Never fix behavioral issues automatically** — report and stop
-- **Run every sub-agent the selected profile calls for** — don't skip within a profile even if early ones pass
-- **Adversarial Agent always runs in `full`** — it activates specifically on unanimous approval (a `fast` diff is docs/config only, so it doesn't apply)
-- **Protected files/contracts force `full`** — never let a profile skip review on high-risk diffs
-- **Never open a PR with a BLOCKER** — fix first, then re-run /prepare-pr
+- Never mark the task DONE — that is /done's job
+- Never fix behavioral failures automatically — report and stop
+- Never open a PR with an unresolved BLOCKER
+- Diffs touching protected files or contracts always force full review

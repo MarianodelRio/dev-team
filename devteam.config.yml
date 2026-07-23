@@ -29,7 +29,7 @@ model:
   # alternatives: openai/o3 | google/gemini-2.5-pro | local/ollama:qwen2.5-coder
 
   # Model for writing code, implementing tasks
-  # → agent frontmatter: orchestrator.md, pr-reviewer.md, code-quality.md,
+  # → agent frontmatter: planner.md, coder.md, code-quality.md,
   #   adversarial.md, security.md, smoke-tester.md, mutation-tester.md
   implementation: claude-sonnet-4-6
   # alternatives: openai/gpt-4o | local/ollama:codestral
@@ -55,6 +55,9 @@ workflow:
   #   before_code  — agent presents plan, waits for approval, then codes (recommended)
   #   before_pr    — agent codes and presents result before opening PR
   #   both         — checkpoint at both points
+  # Note: in /orchestrate v2, the only pre-code checkpoint is after Phase 1 (analysis).
+  # The before_pr option adds an extra gate before the PR is opened.
+  # both = checkpoint after analysis AND before PR.
   human_checkpoint: before_code
 
   # When to invoke the Advisor agent (uses reasoning model, more expensive):
@@ -74,6 +77,32 @@ workflow:
   # Requires pr_mode: automatic (ignored under pr_mode: manual). After the PR merges you
   # still run /done T-XXX to mark it done and unblock dependents.
   auto_merge: off
+
+# ─────────────────────────────────────────
+# ORCHESTRATION
+# ─────────────────────────────────────────
+# Controls how /orchestrate coordinates its sub-agents.
+orchestration:
+  # Model used by the Orchestrator (coordinator role — reasoning-heavy)
+  # Defaults to model.reasoning if not set.
+  # orchestrator_model: ""
+
+  # Model used by the Planner sub-agent
+  # Defaults to model.implementation if not set.
+  # planner_model: ""
+
+  # Model used by the Coder sub-agent
+  # Defaults to model.implementation if not set.
+  # coder_model: ""
+
+  # Timeout per task size before /restart is suggested (in minutes)
+  # The orchestrator warns if a sub-agent exceeds this without reporting.
+  timeout_s: 120    # ~2h
+  timeout_m: 240    # ~4h
+  timeout_l: 480    # ~8h
+
+  # Maximum rebase conflict resolution attempts before escalating to human.
+  max_rebase_auto_retries: 2
 
 # ─────────────────────────────────────────
 # QUALITY GATES

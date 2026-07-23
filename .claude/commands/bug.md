@@ -1,150 +1,141 @@
-You are executing the `/bug` command for dev-team.
+You are the Orchestrator running /bug.
 
-**Input:** `$ARGUMENTS` — bug description or symptom
+Input: $ARGUMENTS — bug description or symptom.
 
-Your job: investigate the bug systematically, find the root cause, and implement the minimal fix.
+Your job: investigate the bug, find the root cause, and create a well-formed fix task.
+You do not implement — you create the task for /orchestrate to execute.
 
 ---
 
-## Step 1 — Create bug task
+## Step 1 — Create bug task (placeholder)
 
-Generate a bug ID (B-001, B-002, etc. — check tasks/ for existing B-XXX files).
+Generate ID: B-001, B-002, etc. (check tasks/ for the next available one).
 
-Create `tasks/available/B-XXX-[slug].md`:
-```markdown
+Create `tasks/available/B-XXX-[slug].md` with minimal frontmatter:
+```yaml
 ---
 id: B-XXX
 type: bug
-agent: [TBD — assigned after investigation]
+agent: TBD
 status: available
 branch: ~
 pr: ~
 ---
-
-## [Symptom description]
-
-**Reported:** [date]
-**Severity:** [TBD]
-**Root cause:** [TBD]
-**Affected module:** [TBD]
+## [Symptom]
+Reported: [date]
+Root cause: INVESTIGATING
 ```
 
-Commit the new bug task to main, then claim it — this reuses the same reliable path as `/orchestrate` (atomic lock branch `fix/B-XXX-slug` + isolated worktree + IN_PROGRESS on main):
-
+Commit to main (to register that the bug was reported):
 ```bash
-git add tasks/available/B-XXX-[slug].md
-git commit -m "chore(B-XXX): file bug"
+git add tasks/available/B-XXX-slug.md
+git commit -m "chore(B-XXX): file bug — [short symptom]"
 git push origin main
-
-bash scripts/dt-claim.sh B-XXX
 ```
-
-**If the claim exits non-zero**: another agent is already on this bug — stop (use `/restart B-XXX` if it's stale).
-
-All work in Steps 2–6 happens inside the worktree it created (`../[project-name]-B-XXX/`). The main repo stays on main.
 
 ---
 
-## Step 2 — Reproduce
+## Step 2 — Investigate
 
-Write a minimal reproduction case first — the simplest possible input that triggers the bug.
+Reproduce the bug with the minimal possible case.
 
-```bash
-[run the reproduction]
+If it cannot be reproduced:
 ```
-
-If you cannot reproduce it, report to the human:
-```
-⚠️ Cannot reproduce with: [what you tried]
-More information needed:
+⚠️ Could not reproduce with: [what I tried]
+Need more information:
 - [question 1]
 - [question 2]
 ```
+Wait for response.
+
+Isolate: which file, which line, which module? Logic error, uncovered edge case, or contract mismatch?
 
 ---
 
-## Step 3 — Isolate
+## Step 3 — Human checkpoint
 
-Narrow down to the exact file and line. Check:
-- Which module owns this code?
-- Is it a logic error, a missing edge case, or a contract mismatch?
-- Does a test exist that should have caught this?
-
----
-
-## Step 4 — Mandatory human checkpoint
-
-Update the bug task with findings. Present:
-
+Present diagnosis:
 ```
 Bug: B-XXX — [symptom]
 
 Reproduced with: [minimal case]
-Root cause: [clear explanation of WHY this happens]
+Root cause: [clear explanation of WHY it occurs]
 Location: [file:line]
-Module: [module name] → agent: [agent name]
+Module: [name] → agent: [responsible agent name]
 
 Proposed fix:
 - [specific change 1]
 - [specific change 2]
-Test to add: [what case it covers]
 
-[If fix crosses module boundaries:]
+Test to add: [what scenario the regression test covers]
+
+[If the fix crosses modules:]
 ⚠️ Also affects [other module] — requires your explicit authorization
 
 Questions: [or "None"]
 ```
 
-**Wait for human confirmation before touching any production code.**
+Wait for confirmation. **Do not create the final task without confirmation.**
 
 ---
 
-## Step 5 — Implement fix
+## Step 4 — Create complete fix task
 
-Apply the minimal fix. Do not refactor surrounding code. Do not fix unrelated issues.
+Update `tasks/available/B-XXX-[slug].md` with the complete diagnosis:
 
-Add a test that would have caught this bug.
-
+```yaml
+---
+id: B-XXX
+type: bug
+agent: [agent responsible for the module]
+depends_on: []
+status: available
+folders: [affected module]
+outputs: [affected function or endpoint]
+size: S
+branch: ~
+pr: ~
 ---
 
-## Step 6 — Verify
+## [Symptom]
+
+**Root cause:** [root cause explanation]
+**Location:** [file:line]
+
+**Fix:**
+- [specific change 1]
+- [specific change 2]
+
+**Done when:**
+- [ ] Bug reproduced with regression test
+- [ ] Fix applied
+- [ ] Regression test passes
+- [ ] Full suite passes
+- [ ] [primary doc from Documentation plan] updated if the fix changes public behavior
+```
 
 ```bash
-[full test suite — all must pass]
+git add tasks/available/B-XXX-slug.md
+git commit -m "chore(B-XXX): complete bug investigation — root cause identified"
+git push origin main
 ```
 
----
-
-## Step 7 — Mark READY_FOR_PR and clean up
-
-Commit and push the fix from the worktree:
-
-```bash
-cd ../[project-name]-B-XXX
-git add [specific files]
-git commit -m "B-XXX: [fix description]"
-git push origin fix/B-XXX-[slug]
+Report and stop:
 ```
+✓ B-XXX created in tasks/available/
 
-Then run the ready script from the main repo — it removes the worktree, syncs main, and moves the bug to `ready-for-pr/`:
+Root cause: [one-line summary]
+Module: [module] — agent: [agent]
 
-```bash
-cd ../[project-name]
-bash scripts/dt-ready.sh B-XXX
-```
-
-Report:
-```
-B-XXX is READY_FOR_PR.
-Run /prepare-pr B-XXX to open the PR.
+To implement the fix: run /orchestrate
+(/orchestrate will pick it up like any available task)
 ```
 
 ---
 
 ## Rules
 
-- **Always work in an isolated worktree** — never fix directly on main or in the main checkout
-- **Minimal fix only** — do not clean up or refactor beyond the bug
-- **Never cross module boundaries** without explicit human approval
-- **Always add a regression test** — if there's no test, the bug will return
-- **Always checkpoint before coding** — the human must approve the root cause diagnosis
+- Never implement code in this command — only investigate and create the task
+- Always reproduce before diagnosing
+- Always checkpoint before creating the final task
+- If the fix requires touching multiple modules: create one task per module with dependencies
