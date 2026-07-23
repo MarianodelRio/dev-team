@@ -29,7 +29,7 @@ bash scripts/dt-board.sh --print
 [- T-XXX — title (PR #NN, opened Xh ago)]
 
 ### 🛎 Ready for PR ([N])
-[- T-XXX — title → run /prepare-pr T-XXX]
+[- T-XXX — title → run /prepare-pr T-XXX (escape hatch — task was not processed by /orchestrate Phase 4)]
 
 ### 🔧 In Progress ([N])
 [- T-XXX — title (branch: feature/T-XXX-slug)]

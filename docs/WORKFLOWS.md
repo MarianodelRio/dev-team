@@ -10,8 +10,7 @@ Run `/cheatsheet` any time for a version of this contextualised to the current b
 ## The normal cycle
 
 ```
-/orchestrate                 → pick + implement the best available task (opens a worktree)
-/prepare-pr T-XXX            → review with sub-agents, open the PR
+/orchestrate                 → pick + implement the best available task, review, and open the PR
 (merge the PR on GitHub)     → your approval
 /done T-XXX                  → mark done, clean the branch, unblock dependents
 ```
@@ -27,7 +26,7 @@ guarantees two chats never grab the same task.
 |-------------|---------|-------------------|
 | `available/` | ready, deps done, unclaimed | `/orchestrate` |
 | `in-progress/` | being implemented (has a worktree + branch) | finish it, then it moves itself |
-| `ready-for-pr/` | implemented, tests pass | `/prepare-pr T-XXX` |
+| `ready-for-pr/` | escape hatch: task manually set (not processed by /orchestrate) | `/prepare-pr T-XXX` |
 | `pr-open/` | PR is open on GitHub | merge it, then `/done T-XXX` |
 | `done/` | merged | nothing |
 | `blocked/` | deps not done (or `cancelled`) | nothing until deps land |
@@ -38,8 +37,8 @@ guarantees two chats never grab the same task.
 
 **Bug**
 ```
-/bug "symptom"      → file + claim B-XXX, investigate, checkpoint, fix (own worktree)
-/prepare-pr B-XXX   → review + PR
+/bug "symptom"      → file B-XXX, investigate, create fix task
+/orchestrate        → pick and implement the fix
 (merge) → /done B-XXX
 ```
 
@@ -62,9 +61,9 @@ State transitions are handled by the scripts in `scripts/` (called by the comman
 | Script | Does |
 |--------|------|
 | `dt-claim.sh T-XXX` | lock branch + worktree + IN_PROGRESS on main |
-| `dt-ready.sh T-XXX` | remove worktree, move to `ready-for-pr/` |
+| `dt-ready.sh T-XXX` | remove worktree, move to `ready-for-pr/` (escape hatch use only — /orchestrate handles this internally) |
 | `dt-done.sh T-XXX` | move to `done/`, clean branch, unblock dependents |
-| `dt-cancel.sh T-XXX` | park in `blocked/` as cancelled |
+| `dt-cancel.sh T-XXX` | move to `cancelled/` (audit trail — never picked up by /orchestrate) |
 | `dt-restart.sh T-XXX` | reset a stuck task to `available/` |
 | `dt-board.sh` | regenerate `.dt-index.json` (the fast board cache) |
 

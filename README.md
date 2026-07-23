@@ -45,7 +45,7 @@ One human checkpoint: after analysis, before code. Everything else is autonomous
 
 - **Claude Code** — the CLI you run the commands in
 - **git** — installed and configured
-- **GitHub CLI (`gh`)** — installed and authenticated (`gh auth login`); `/prepare-pr` uses it to open PRs
+- **GitHub CLI (`gh`)** — installed and authenticated (`gh auth login`); `/orchestrate` uses it to open PRs
 - **`main` must be unprotected** — dev-team pushes task status metadata (`tasks/*.md`) directly to `main` as its coordination mechanism. Branch protection breaks the workflow. If your org mandates protection, exclude `tasks/**` from the ruleset.
 
 ---

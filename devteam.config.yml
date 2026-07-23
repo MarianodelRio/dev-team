@@ -24,7 +24,7 @@ project:
 model:
   # Model for design decisions, architecture, Advisor consultations
   # Recommended: most capable model available
-  # → agent frontmatter: advisor.md, architect.md
+  # → agent frontmatter: advisor.md, architect.md, orchestrator.md
   reasoning: claude-opus-4-8
   # alternatives: openai/o3 | google/gemini-2.5-pro | local/ollama:qwen2.5-coder
 

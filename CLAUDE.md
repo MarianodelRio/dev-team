@@ -16,7 +16,7 @@ IDEA.md  →  /bootstrap  →  design.md + plan.md + tasks/  →  /orchestrate  
 
 1. **Write your idea** in `IDEA.md` (as vague as you want)
 2. **Run `/bootstrap`** — conversational design session, generates architecture + tasks + infra
-3. **Run `/orchestrate`** — analiza, planea, codifica, revisa y abre el PR automáticamente
+3. **Run `/orchestrate`** — picks the best available task, analyzes it, plans, codes, reviews, and opens a PR automatically
 4. **Merge on GitHub, run `/done T-XXX`** — marks done, reports what's unblocked
 
 ---
@@ -39,7 +39,7 @@ scripts/                   ← dt-claim, dt-ready, dt-done, dt-cancel, dt-restar
 tasks/
   available/               ← TODO + all dependencies DONE
   in-progress/             ← currently being worked on
-  ready-for-pr/            ← implemented, waiting for /prepare-pr
+  ready-for-pr/            ← escape hatch only (tasks not processed by /orchestrate Phase 4)
   pr-open/                 ← PR open on GitHub
   done/                    ← merged
   blocked/                 ← dependencies not yet DONE
@@ -60,7 +60,7 @@ tests/
 ## Task lifecycle
 
 ```
-available/ → in-progress/ → ready-for-pr/ → pr-open/ → done/
+available/ → in-progress/ → pr-open/ → done/
 ```
 
 Status lives in the task file's YAML frontmatter. Moving between folders is the visual signal — frontmatter is the machine-readable source of truth.
@@ -109,27 +109,27 @@ After completing a task, the agent appends:
 
 ---
 
-## Agentes del framework
+## Framework agents
 
-### Coordinador
-- `orchestrator` — coordina las 4 fases de /orchestrate, /bug, y /explore. Único punto de contacto con el usuario durante la ejecución de una tarea.
+### Coordinator
+- `orchestrator` — coordinates all 4 phases of /orchestrate, /bug, and /explore. Sole point of contact with the user during task execution.
 
-### Análisis (Fase 1)
-- `architect` — valida la tarea contra el estado actual del proyecto, guarda contratos compartidos, mantiene el DAG, escribe ADRs.
+### Analysis (Phase 1)
+- `architect` — validates the task against current project state, guards shared contracts, maintains the DAG, writes ADRs.
 
-### Implementación (Fases 2-3)
-- `planner` — convierte la tarea aprobada en un plan concreto de archivos y funciones.
-- `coder` — implementa el plan en el worktree asignado, escribe tests, verifica calidad.
+### Implementation (Phases 2–3)
+- `planner` — converts the approved task into a concrete plan of files and functions.
+- `coder` — implements the plan in the assigned worktree, writes tests, verifies quality.
 
-### Recurso compartido
-- `advisor` — consultor técnico con recomendación opinionada. Cualquier agente lo puede invocar.
+### Shared resource
+- `advisor` — senior technical consultant with an opinionated recommendation. Any agent can invoke it.
 
-### Revisión (Fase 4, paralelo)
-- `code-quality` — scope, arquitectura, tests, docs.
-- `security` — OWASP Top 10 sobre el diff.
-- `adversarial` — busca lo que los demás no vieron.
-- `smoke-tester` — corre la app, valida acceptance criteria.
-- `mutation-tester` — calidad de tests (solo módulos críticos).
+### Review (Phase 4, parallel)
+- `code-quality` — scope, architecture, tests, docs.
+- `security` — OWASP Top 10 on the diff.
+- `adversarial` — looks for what the others missed.
+- `smoke-tester` — runs the app, validates acceptance criteria.
+- `mutation-tester` — test quality (critical modules only).
 
 ---
 
@@ -189,7 +189,7 @@ Every PR must pass before merge:
 - Protected files untouched (or explicitly approved)
 - Auto-merge (`workflow.auto_merge: low_risk`) never applies to PRs touching protected files or shared contracts, or with any warning — those always require a manual merge
 
-**PR Review sub-agents** (run by PR Reviewer automatically; which ones run scales with `quality.review_profile` — `full`/`fast`/`auto` — but a diff touching protected files or contracts always runs `full`):
+**PR Review sub-agents** (run by the Orchestrator in Phase 4 of `/orchestrate`; for the `/prepare-pr` escape hatch, which ones run scales with `quality.review_profile` — `full`/`fast`/`auto` — but a diff touching protected files or contracts always runs `full`):
 - Code Quality Agent — scope, patterns, correctness
 - Adversarial Agent — activates on unanimous approval, actively looks for flaws
 - Security Agent — OWASP top 10 on the diff
@@ -230,20 +230,21 @@ The Orchestrator reads both files at the start of each task and surfaces relevan
 
 ## Available commands
 
-| Comando | Qué hace |
-|---------|----------|
-| `/team-init` | Configura el proyecto y muestra el estado actual — correr primero |
-| `/bootstrap` | Sesión de diseño: idea → design → plan → tasks → infra |
-| `/orchestrate [T-XXX]` | Toma una tarea y la lleva de punta a punta: analiza → planea → codifica → revisa → PR |
-| `/bug [descripción]` | Investiga un bug, identifica root cause, crea tarea de fix |
-| `/explore [tema]` | Investiga una implementación o comportamiento del proyecto |
-| `/done T-XXX` | Marca DONE tras el merge, desbloquea tareas dependientes |
-| `/add-task [descripción]` | Diseña y agrega una tarea nueva mid-project |
-| `/status` | Board completo del proyecto |
-| `/guide` | Estado actual — qué está construido, cómo correrlo |
-| `/restart T-XXX` | Recupera tarea colgada (agente crasheó, worktree perdido) |
-| `/cancel T-XXX` | Abandona tarea limpiamente |
-| `/prepare-pr T-XXX` | Escape hatch manual para tareas en ready-for-pr fuera del flujo normal |
+| Command | What it does |
+|---------|-------------|
+| `/team-init` | Configure the project and show current state — run this first |
+| `/bootstrap` | Conversational setup: idea → design → plan → tasks → infra |
+| `/orchestrate [T-XXX]` | Pick next task, analyze, plan, code, review, and open a PR automatically |
+| `/bug [description]` | Investigate a bug, find root cause, create fix task |
+| `/explore [topic]` | Investigate an implementation or behavior in the project |
+| `/done T-XXX` | Mark DONE after merge, report unblocked tasks |
+| `/add-task [description]` | Design and add a new task mid-project |
+| `/status` | Full project status board |
+| `/cheatsheet` | What to do next, contextual to the current board (global or per-task) |
+| `/guide` | Current state of the project — what's built, how to test it |
+| `/restart T-XXX` | Recover a task stuck in-progress (agent crashed, worktree lost) |
+| `/cancel T-XXX` | Abandon a task cleanly |
+| `/prepare-pr T-XXX` | Manual escape hatch for tasks in ready-for-pr outside normal flow |
 
 ---
 

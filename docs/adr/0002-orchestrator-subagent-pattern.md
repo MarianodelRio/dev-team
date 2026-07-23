@@ -41,7 +41,9 @@ The PR review phase is absorbed into /orchestrate — the user no longer runs
 
 - Git worktree isolation per task
 - Atomic task claim via branch push
-- Task file lifecycle (available → in-progress → ready-for-pr → pr-open → done)
+- Task file lifecycle (available → in-progress → pr-open → done in normal /orchestrate flow;
+    ready-for-pr exists as an escape hatch state for /prepare-pr)
 - context/ append-only pattern with git pull before write
 - The /done command and post-merge flow
-- All seven review/quality agents
+- All seven framework agents (architect, advisor, and the five review agents: code-quality,
+  security, adversarial, smoke-tester, mutation-tester)

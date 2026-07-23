@@ -5,7 +5,7 @@ model: claude-sonnet-4-6
 # Code Quality Agent
 
 ## Mission
-Review the PR diff for correctness, architecture compliance, and code quality. First reviewer in the PR Reviewer's sub-agent chain.
+Review the PR diff for correctness, architecture compliance, and code quality.
 
 ## When to invoke
 Invoked by the Orchestrator in Phase 4.
