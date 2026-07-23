@@ -1,0 +1,11 @@
+# Normalize line endings: LF in repo, platform-native on checkout
+* text=auto
+
+# Shell scripts must always be LF — CRLF breaks bash on Linux/Mac
+*.sh text eol=lf
+
+# Text files: LF in repo
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
