@@ -172,7 +172,10 @@ Launch reviewers in parallel (all simultaneously):
 - `smoke-tester` — "Done when" criteria from the task file + stack info from devteam.config.yml
 - `mutation-tester` — ONLY if `require_mutation_tests: true` OR the task touches modules in `quality.critical_modules`
 
-Synthesize results using this rubric. Track retry count per blocker.
+Synthesize results using this rubric. Track retry count per blocker type.
+Read `orchestration.max_blocker_retries` from `devteam.config.yml` as the
+global ceiling: if a blocker type allows 2 retries but this value is lower,
+apply the lower limit.
 
 **Blocker classification and retry policy:**
 
