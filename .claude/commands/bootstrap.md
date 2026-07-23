@@ -87,12 +87,67 @@ Once ideation is complete, update `IDEA.md` with a clean summary of what was dis
 
 Read `IDEA.md` and `devteam.config.yml`.
 
+Ask the following questions adapted to the user's expertise level (A/B/C from Step 1).
+These drive architecture decisions in Mode 2 and go into design.md:
+
+**Level A** (technical):
+```
+Before proposing the architecture, I need a few data points:
+
+Scale: expected requests/day at launch · peak load scenario?
+Availability: acceptable downtime? (e.g. "a few minutes/month" vs "always on")
+Latency: what's a slow response for a user of this system?
+Data sensitivity: PII, payments, health data, or none?
+Deployment target: where does this run? (cloud, on-prem, serverless, container)
+```
+
+**Level B**:
+```
+A few quick questions before the design:
+
+How many people will use this at the same time at peak?
+Can it go down for a few minutes occasionally, or must it always be available?
+How fast should it respond? (under 1 second, a few seconds, doesn't matter)
+Does it handle personal data, payments, or health information?
+Where will it run? (I can suggest if you're unsure)
+```
+
+**Level C**:
+```
+Before we design, I need to understand how the system will be used:
+
+How many people will use it simultaneously?
+What happens if it's unavailable for 5 minutes?
+Does it need to respond instantly, or can it take a few seconds?
+Will it store personal information, payments, or medical data?
+```
+
+Wait for response. Store the answers internally as NFRs:
+  nfr.scale, nfr.availability, nfr.latency, nfr.data_sensitivity, nfr.deployment
+
+These MUST appear in design.md (see the generated design.md spec below).
+
 Consult the Advisor agent for the architecture if the project has:
 - External API integrations
 - A database
 - Authentication
 - More than 2 distinct user-facing features
 - ML or data processing components
+
+**Security boundaries (required when any of the following apply):**
+- Authentication or authorization
+- Payments or financial data
+- PII, health data, or other sensitive data
+- Multi-tenant architecture
+
+When any of these apply, the design.md must include a "Security boundaries" section:
+  - What data is sensitive and how it is classified
+  - What traverses each module boundary and what is never allowed to cross
+  - Encryption requirements: in transit and at rest
+  - Who can call what (trust model between modules)
+
+The Architect (not the Orchestrator) is responsible for validating the
+"Security boundaries" section in every Phase 1 analysis for tasks touching these modules.
 
 Present architecture proposal (adapt detail to expertise level):
 
@@ -127,6 +182,10 @@ Once approved, generate `design.md` with:
 - Shared contracts (data models, API schemas)
 - Tech stack
 - Key constraints and non-negotiables
+- **Non-functional requirements** — the scale, availability, latency, and data
+  sensitivity answers from the NFR conversation, plus their architectural
+  implications (e.g. "peak 500 req/s → stateless services behind load balancer",
+  "PII present → encryption at rest, no plaintext in logs")
 - **Testing strategy** (see below)
 - **Documentation plan** (see below)
 
@@ -181,6 +240,28 @@ Sets up shared contracts and infrastructure. Must complete before Phase 1.
 Does this phasing make sense? Any task missing or scope wrong?
 ```
 
+After computing the dependency graph, calculate and present:
+
+```
+Critical path: T-001 → T-003 → T-007 → T-012 (4 sequential tasks)
+Minimum time to completion (max parallelism): N sessions
+Time with no parallelism (all sequential): M sessions
+
+Maximum parallel tasks at peak: K (at phase [N])
+Tasks that could run in parallel but are sequenced:
+  T-004 and T-005 share no dependencies — could run simultaneously
+  [or: "None found — dependency graph is already optimally parallel"]
+```
+
+If there are tasks that could be parallelized but aren't:
+```
+⚠️ I found [N] tasks that have no dependency between them but are
+sequenced. If you want to maximize speed, I can adjust the plan.
+Would you like me to maximize parallelism?
+```
+
+Wait for response on this before asking for general plan approval.
+
 Wait for approval.
 
 Once approved:
@@ -188,6 +269,27 @@ Once approved:
    - `tasks/available/` for Phase 0 tasks with no dependencies
    - `tasks/blocked/` for all others
    - Each task's **Done when** checklist references the test types the Testing strategy assigns to that module, and the specific doc file from the Documentation plan (not a hardcoded `docs/api.md`)
+
+   **Measurability rule for "Done when" criteria**: every criterion must be
+   verifiable by the smoke-tester without ambiguity. Before writing a criterion,
+   ask: "Can a test script produce a PASS or FAIL on this, without human judgment?"
+
+   Rewrite vague criteria before saving:
+     ✗ "API returns the correct data"
+     ✓ "POST /users returns 201 with {id: UUID, email: string} within 500ms"
+
+     ✗ "Error handling works"
+     ✓ "POST /users with missing email returns 422 with {error: 'email required'}"
+
+     ✗ "The CLI command works correctly"
+     ✓ "`mytool import sample.csv` exits 0 and prints 'Imported: 3 records'"
+
+     ✗ "Data is saved to the database"
+     ✓ "After POST /users, SELECT count(*) FROM users increases by 1"
+
+   If you cannot write a measurable criterion, write it as a human-review item:
+     "[ ] HUMAN REVIEW: [description of what needs manual inspection]"
+
 2. Include a Phase 0 task to scaffold the test structure (`tests/` + `tests/fixtures/`) if `batteries.test_scaffold` is false or the stack needs custom setup
 3. Generate `plan.md` with the full dependency graph
 4. Proceed to Mode 4
@@ -210,7 +312,18 @@ Generate the test structure and documentation from `design.md`:
 
 Generate batteries based on `devteam.config.yml`:
 - If `docker: true` → generate `docker-compose.yml` and `Dockerfile`
-- If `ci: true` → generate `.github/workflows/ci.yml`
+- If `ci: true` → generate `.github/workflows/ci.yml` with these exact triggers:
+  ```yaml
+  on:
+    pull_request:
+      branches: [main]
+    push:
+      branches: [main]
+  ```
+  The same job set must run on both triggers (test, lint, type_check, build if applicable).
+  This ensures CI results are visible on the PR page before merge — not just after.
+  The specific commands come from `devteam.config.yml` `commands:` section; fall back
+  to auto-detected commands if empty.
 - If `env_example: true` → generate `.env.example`
 - If `contributing: true` → generate `CONTRIBUTING.md`
 - If `security_policy: true` → generate `SECURITY.md`

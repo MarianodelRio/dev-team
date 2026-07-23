@@ -172,11 +172,44 @@ Launch reviewers in parallel (all simultaneously):
 - `smoke-tester` — "Done when" criteria from the task file + stack info from devteam.config.yml
 - `mutation-tester` — ONLY if `require_mutation_tests: true` OR the task touches modules in `quality.critical_modules`
 
-Synthesize results:
-- Any BLOCKER from any reviewer: SendMessage to the Coder with the specific blocker → Coder fixes → back to verification and reviewers
-- If the BLOCKER requires a design decision: escalate to the user first
-- WARNING without blocker: PR opens with warnings flagged prominently
-- CLEAN: proceed to open PR
+Synthesize results using this rubric. Track retry count per blocker.
+
+**Blocker classification and retry policy:**
+
+| Blocker type | Actor | Max retries | After retries exhausted |
+|---|---|---|---|
+| Code bug, wrong type, missing test, bad assertion | Coder via SendMessage | 2 | Escalate to user (structured message) |
+| Security issue (hardcoded secret, SQL injection, etc.) | Coder via SendMessage | 1 | If design problem → user; else escalate |
+| Architecture violation (DAG import, business logic in HTTP layer) | Coder via SendMessage after Architect review | 1 | User |
+| Smoke test: app fails to start | Coder via SendMessage | 2 | User |
+| Smoke test: missing fixture, env var, or test setup issue | Orchestrator fixes directly (fixture or env), then re-run | 1 | User |
+| Mutation score below threshold on non-critical module | Coder adds assertions via SendMessage | 1 | Accept if score ≥60% with WARNING; block if critical module |
+| Design conflict in rebase | User — present immediately, do not attempt auto-resolve | 0 | — |
+| Shared contract change needed | Architect sub-agent + user | 0 | — |
+
+When retries are exhausted, present this structure to the user:
+
+```
+⚠️ Unresolved blocker — T-XXX
+
+Type: [blocker classification from rubric above]
+What failed: [specific description with file:line]
+Attempts: [N]/[max]
+
+What was tried:
+  Attempt 1: [what the Coder changed and why it wasn't enough]
+  Attempt 2: [what the Coder changed and why it wasn't enough]
+
+Options:
+  A) Give me specific direction and I'll send it to the Coder for one more attempt
+  B) Open the PR with this blocker flagged as a WARNING (not recommended for BLOCKER type)
+  C) Abandon this task — run /cancel T-XXX and create a new one with clearer scope
+```
+
+Wait for user response. Apply direction and retry once more if option A chosen.
+
+WARNING without any blocker: open PR with warnings prominently flagged in the PR body.
+CLEAN from all reviewers: proceed to open PR immediately.
 
 Open PR:
 ```bash
@@ -235,7 +268,7 @@ Adversarial: [clean / found X — already fixed]
 What to review:
 - [2-3 specific points that deserve human attention]
 
-After merging → run /done T-XXX
+After CI checks pass and PR is merged → run /done T-XXX
 ```
 
 ---

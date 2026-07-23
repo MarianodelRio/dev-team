@@ -104,6 +104,11 @@ orchestration:
   # Maximum rebase conflict resolution attempts before escalating to human.
   max_rebase_auto_retries: 2
 
+  # Maximum times the Orchestrator sends a blocker back to the Coder before
+  # escalating to the user. Per-blocker-type limits in orchestrate.md apply first;
+  # this is the global ceiling across all blocker types.
+  max_blocker_retries: 2
+
 # ─────────────────────────────────────────
 # QUALITY GATES
 # ─────────────────────────────────────────

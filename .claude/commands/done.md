@@ -30,6 +30,44 @@ Check the `status` field in frontmatter:
 
 ---
 
+## Step 2.5 — Verify CI checks passed
+
+Read the PR URL from the task file's `pr:` frontmatter field. Then:
+
+```bash
+gh pr view [PR_URL_OR_NUMBER] --json statusCheckRollup,state \
+  --jq '{state: .state, checks: [.statusCheckRollup[] | {name: .name, conclusion: .conclusion}]}'
+```
+
+If the PR is already merged (`state: MERGED`):
+- Check if any `conclusion` is `FAILURE` or `CANCELLED`
+- If all are `SUCCESS` or `SKIPPED` (or `statusCheckRollup` is empty): proceed to Step 3 silently
+- If any failed:
+  ```
+  ⚠️ T-XXX was merged but some CI checks failed:
+    ✗ [check name]: FAILURE
+    ✓ [check name]: SUCCESS
+
+  This may indicate the main branch is broken. Proceed marking as DONE?
+  (Recommended: investigate the failure before confirming)
+  ```
+  Wait for explicit confirmation before proceeding.
+
+If the PR is not yet merged (`state: OPEN`):
+```
+⚠️ T-XXX — PR #[N] is still open, not merged.
+CI status: [check summary]
+
+Are you sure you want to mark this DONE? This should only happen if you
+merged outside of GitHub (e.g. git merge locally).
+```
+Wait for explicit confirmation.
+
+If `gh` returns an error (PR not found, no CI configured):
+Skip silently — do not block `/done` for projects without CI.
+
+---
+
 ## Step 3 — Mark DONE, clean up, and unblock
 
 Run the done script. It syncs main, moves the file to `done/`, deletes the merged branch (if `cleanup_merged_branches: true`, silent when already gone), and moves every dependent whose dependencies are now all done from `blocked/` to `available/` — all committed and pushed to main:
