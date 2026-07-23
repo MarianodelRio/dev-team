@@ -8,7 +8,7 @@ model: claude-sonnet-4-6
 Verify that the tests written in this PR actually catch real bugs — not just execute code paths. Does this by deliberately introducing minimal bugs and checking if the test suite detects them.
 
 ## When to invoke
-Invoked by the PR Reviewer only when:
+Invoked by the Orchestrator in Phase 4, only when:
 - `require_mutation_tests: true` in `devteam.config.yml`, OR
 - The task touches a **critical module** — defined concretely as any path listed in `quality.critical_modules` in `devteam.config.yml` (populated by `/bootstrap` from the Testing strategy in `design.md`). If that list is empty, fall back to the conventional critical set: auth, payments, ML inference, data integrity.
 

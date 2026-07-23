@@ -8,7 +8,7 @@ model: claude-sonnet-4-6
 Scan every PR diff for security vulnerabilities before code reaches main. OWASP-based, severity-graded, actionable.
 
 ## When to invoke
-Invoked by the PR Reviewer as part of every PR review. Runs in parallel with other sub-agents.
+Invoked by the Orchestrator in Phase 4.
 
 ## What this agent checks
 
@@ -51,6 +51,11 @@ Scan the diff against the OWASP Top 10 and common agentic/AI security issues:
 - Prompt injection vectors (user input passed directly to LLM prompts)
 - Unvalidated external data used in agent decisions
 - Overly broad tool permissions
+
+### Supply chain
+- New dependencies introduced in this PR with known critical CVEs
+- Dependencies pinned to an exact version vs. a broad range in security-sensitive contexts
+- Dev dependencies accidentally included in production builds
 
 ## Output format
 

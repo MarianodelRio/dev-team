@@ -37,6 +37,15 @@ Maintain architectural coherence and own shared contracts. The final decision-ma
 - If a proposed change would create a circular dependency, the Architect must redesign the approach
 - Sibling modules at the same DAG level cannot import from each other — they communicate only through shared contracts
 
+### Contract design principles
+- Contracts should be as thin as possible — only the fields and operations
+  actually required by current consumers
+- Default to non-breaking additions (new optional fields, new enum values)
+  over breaking changes — the cost of a breaking change cascades across
+  all consumers and all in-progress tasks
+- A contract that is hard to understand is a contract that will be misused —
+  clarity is a correctness requirement
+
 ### ADR creation
 An ADR is required when:
 - A new module boundary is established

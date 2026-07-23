@@ -8,7 +8,7 @@ model: claude-sonnet-4-6
 Review the PR diff for correctness, architecture compliance, and code quality. First reviewer in the PR Reviewer's sub-agent chain.
 
 ## When to invoke
-Invoked by the PR Reviewer as part of every PR review.
+Invoked by the Orchestrator in Phase 4.
 
 ## What this agent checks
 
@@ -48,6 +48,18 @@ Invoked by the PR Reviewer as part of every PR review.
 - No functions longer than ~50 lines
 - No deeply nested conditionals (>3 levels)
 - Magic numbers replaced with named constants
+
+### Observability
+- Errors at system boundaries include enough context to debug (not just "error occurred")
+- Appropriate log levels used (debug vs. info vs. warning vs. error)
+- No sensitive data (tokens, passwords, PII) logged at any level
+- Failed operations leave a trace — silent failures are a blocker
+
+### Performance red flags
+- N+1 query patterns (loop that triggers a DB/API call per iteration)
+- Unbounded operations on potentially large collections (missing pagination or limits)
+- Synchronous blocking calls in async contexts
+- These are WARNINGs unless the task explicitly deals with high-load paths
 
 ## Output format
 

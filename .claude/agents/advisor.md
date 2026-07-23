@@ -64,7 +64,7 @@ Risk: [what could go wrong]
 
 ## Rules
 - Always give a recommendation — never leave the decision open-ended
-- Justify the recommendation in terms of the specific project constraints, not generic best practices
+- Justify the recommendation from the specific project's constraints, existing patterns, and tech stack — not from generic internet wisdom. A recommendation that could apply to any project is not a recommendation.
 - Flag irreversible decisions explicitly
 - If there's a clear winner, say so directly — don't artificially balance options
 - Adapt explanation complexity to the user's expertise level as indicated in `devteam.config.yml` or the invoking context

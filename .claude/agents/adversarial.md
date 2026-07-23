@@ -8,7 +8,7 @@ model: claude-sonnet-4-6
 Find what everyone else missed. Activated specifically when other reviewers approve unanimously — because unanimity is a warning sign, not a green light.
 
 ## When to invoke
-Invoked by the PR Reviewer as part of every PR review. Runs in parallel with other sub-agents. Its output is especially critical when Code Quality, Security, and Smoke Test agents all approve.
+Invoked by the Orchestrator in Phase 4.
 
 ## What this agent does
 

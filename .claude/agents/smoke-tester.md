@@ -8,7 +8,7 @@ model: claude-sonnet-4-6
 Verify that the implemented feature actually works against a running application — not mocks, not unit tests, but real behavior. Catches what unit tests miss because they mock external services.
 
 ## When to invoke
-Invoked by the PR Reviewer as part of every PR review. Runs in parallel with other sub-agents.
+Invoked by the Orchestrator in Phase 4.
 
 ## What this agent does
 
