@@ -261,6 +261,6 @@ All framework behavior is controlled by `devteam.config.yml`. See that file for 
 3. **Always write tests** in the same PR as the implementation
 4. **Always update `context/decisions.md`** when making non-obvious choices
 5. **Always check `context/discoveries.md`** before starting implementation
-6. **Planner y Coder trabajan solo en su scope asignado** — el Planner no escribe código, el Coder no toma decisiones de arquitectura. Si necesitan algo fuera de su rol, escalan al Orchestrator.
+6. **Planner and Coder work only within their assigned scope** — the Planner does not write code, the Coder does not make architecture decisions. If either needs something outside their role, they escalate to the Orchestrator.
 7. **Never skip the human checkpoint** — present plan, wait for confirmation, then code
 8. **Always update the task** with what was done after marking READY_FOR_PR

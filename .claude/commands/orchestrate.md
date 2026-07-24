@@ -212,9 +212,31 @@ Options:
 Wait for user response. Apply direction and retry once more if option A chosen.
 
 WARNING without any blocker: open PR with warnings prominently flagged in the PR body.
-CLEAN from all reviewers: proceed to open PR immediately.
+CLEAN from all reviewers: proceed to open PR.
 
-Open PR:
+**Checkpoint before PR (if configured):**
+Read `workflow.human_checkpoint` from `devteam.config.yml`. If `before_pr` or `both`, present to the user before opening the PR:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Ready to open PR — T-XXX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+What was implemented: [2-3 sentence summary]
+Acceptance criteria: [X/X passed]
+Security: [clean / warnings: ...]
+Adversarial: [nothing found / found X — already fixed]
+
+Open the PR?
+```
+
+Wait for explicit confirmation. If the user requests changes: apply and re-run affected reviewers before proceeding.
+If `before_code` (default): skip this checkpoint and proceed immediately.
+
+**Open PR:**
+Read `workflow.pr_mode` from `devteam.config.yml`:
+
+If `pr_mode: automatic` (default):
 ```bash
 gh pr create \
   --title "T-XXX: [task title]" \
@@ -241,6 +263,8 @@ gh pr create \
 EOF
 )"
 ```
+
+If `pr_mode: manual`: print the exact command above for the user to run — do not execute it. Wait for the user to confirm the PR was created and provide the PR URL before continuing to "Update task file".
 
 Update task file: move to `tasks/pr-open/`, frontmatter `status: pr-open`, `pr: "[URL]"`.
 ```bash

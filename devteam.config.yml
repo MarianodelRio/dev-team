@@ -46,7 +46,7 @@ model:
 # WORKFLOW
 # ─────────────────────────────────────────
 workflow:
-  # How PRs are created after /prepare-pr runs:
+  # How PRs are created by /orchestrate Phase 4 (or /prepare-pr in escape-hatch mode):
   #   automatic — agent runs `gh pr create` directly
   #   manual    — agent prepares everything and tells you the command to run yourself
   pr_mode: automatic
@@ -70,12 +70,8 @@ workflow:
   # Set to false if you prefer to manage branches manually
   cleanup_merged_branches: true
 
-  # Auto-merge low-risk PRs once all checks pass (via `gh pr merge --auto`):
-  #   off      — never auto-merge; you merge every PR manually (default)
-  #   low_risk — auto-merge ONLY when: verdict APPROVED with no warnings, no protected
-  #              files or shared contracts touched, and size ≤ M
-  # Requires pr_mode: automatic (ignored under pr_mode: manual). After the PR merges you
-  # still run /done T-XXX to mark it done and unblock dependents.
+  # Auto-merge (not yet implemented — keep off):
+  #   off — never auto-merge; you merge every PR manually on GitHub
   auto_merge: off
 
 # ─────────────────────────────────────────
@@ -193,6 +189,6 @@ tasks:
   # If false, all tasks stay in tasks/ as flat files
   status_folders: true
 
-  # Maximum task size the Orchestrator will start without an extra checkpoint
-  # S = ~2h | M = ~4h | L = ~8h | XL = requires explicit approval
+  # Maximum task size the Orchestrator will pick without asking — XL tasks should be split
+  # S = ~2h | M = ~4h | L = ~8h | XL = very large, consider splitting into smaller tasks
   max_auto_size: L

@@ -105,6 +105,10 @@ fi
 mkdir -p "$TARGET/docs"
 copy_if_missing "$SCRIPT_DIR/docs/WORKFLOWS.md" "$TARGET/docs/WORKFLOWS.md"
 
+# .gitattributes — enforces LF line endings for shell scripts on all platforms.
+# Critical for scripts to run on Linux/Mac when the repo was edited on Windows.
+copy_if_missing "$SCRIPT_DIR/.gitattributes" "$TARGET/.gitattributes"
+
 # IDEA.md — write the standard template (matches the framework's own IDEA.md)
 if [ -f "$TARGET/IDEA.md" ]; then
   skip "IDEA.md"

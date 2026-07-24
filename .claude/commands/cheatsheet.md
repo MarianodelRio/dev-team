@@ -55,7 +55,7 @@ T-XXX — [title]
 
 State → next command (see `docs/WORKFLOWS.md`):
 - `available`   → `/orchestrate` (it will pick the best one; or claim this specifically)
-- `in-progress` → finish the work in the worktree; it moves itself at READY_FOR_PR (`/restart T-XXX` if stuck)
+- `in-progress` → finish the work in the worktree; /orchestrate moves it to pr-open when done (`/restart T-XXX` if stuck)
 - `ready-for-pr`→ `/prepare-pr T-XXX`
 - `pr-open`     → merge the PR on GitHub, then `/done T-XXX`
 - `done`        → nothing — it's merged
