@@ -1,5 +1,7 @@
 # dev-team
 
+[![Release](https://img.shields.io/github/v/release/MarianodelRio/dev-team?label=version)](https://github.com/MarianodelRio/dev-team/releases)
+
 **Framework for building software with a team of AI agents via parallel spec-driven development.**
 
 From a vague idea to production code — specialized agents working in parallel, each owning their module, enforcing quality at every step.
