@@ -1,6 +1,6 @@
 # dev-team
 
-[![Release](https://img.shields.io/github/v/release/MarianodelRio/dev-team?label=version)](https://github.com/MarianodelRio/dev-team/releases)
+[![Release](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/MarianodelRio/dev-team/releases)
 
 **Framework for building software with a team of AI agents via parallel spec-driven development.**
 
