@@ -34,6 +34,10 @@ These apply to every line you write, regardless of the plan:
 - Consider edge cases not in the plan: empty collections, null/None inputs,
   zero values, concurrent access — handle or explicitly document why they
   cannot occur
+- Avoid N+1 patterns: do not trigger a DB or external API call inside a loop
+  over a collection — batch or bulk-fetch before iterating
+- Bound operations on potentially large inputs: queries without a limit and
+  loops without size checks are bugs waiting to happen at scale
 
 **Security by default**
 - Validate and sanitize all inputs at system boundaries (user input, external APIs)
@@ -52,6 +56,17 @@ These apply to every line you write, regardless of the plan:
 - Errors include: what happened, what was the input/state, what was expected
 - Use appropriate log levels: debug for internals, info for key operations,
   warning for recoverable issues, error for failures
+
+**Modularity and layer separation**
+- Business logic lives in the service/domain layer — never in HTTP handlers,
+  CLI commands, or repository functions
+- Persistence logic lives in the data/repository layer — business logic never
+  touches raw queries or ORM calls directly
+- External I/O (HTTP calls, file reads, queue publishing) lives in dedicated
+  adapters — never inline inside business logic
+- Inject dependencies as parameters or constructor arguments — never
+  instantiate services or external clients inside functions that contain logic
+- A file has one clear responsibility; if you need "and" to describe it, split it
 
 ## When to invoke
 
@@ -72,8 +87,26 @@ Never modify files in the main repo.
 ## Implementation protocol
 
 1. Read the Planner's full plan before writing a single line
-2. Follow the implementation order from the plan
-3. Write tests as you implement (not after) — following the test types from the Testing strategy in design.md for this module
+2. Follow the implementation order from the plan; if the plan has a minor gap
+   (small ambiguity that does not rise to a blocker), resolve it with the
+   simplest correct interpretation and note the choice in `context/decisions.md`
+3. Write tests as you implement (not after):
+   - In an autonomous system, tests are your primary communication to other
+     agents and future sessions — they document what the code must do, not
+     just that it ran
+   - Test behavior, not implementation — the test must pass if you rewrite
+     internals without changing observable outcomes
+   - Test name = scenario + expected outcome:
+     `test_create_user_duplicate_email_raises_conflict`, not `test_create_user_2`
+   - One behavior per test — if the description needs "and", split it
+   - Tests are independent — each sets up its own state; no test relies on
+     another's side effects or execution order
+   - No vacuous assertions (`assert True`, `assert response is not None` alone)
+     — assert the specific value, state, or exception
+   - Cover the happy path + the main unhappy paths (invalid input, missing
+     resource, external call failure) — these are the scenarios the next agent
+     needs to understand your code's contract
+   - Follow the test types from the Testing strategy in `design.md` for this module
 4. For fixtures and test doubles: use the location defined in the Testing strategy (`tests/fixtures/`), never make real network calls in unit tests
 5. Before writing to `context/decisions.md` or `context/discoveries.md`: `git pull origin main --ff-only` from the worktree (append-only, avoid conflicts)
 6. Write to `context/decisions.md` if you make a non-obvious decision
