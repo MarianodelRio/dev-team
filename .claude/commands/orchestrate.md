@@ -30,6 +30,7 @@ If a task ID is provided: verify it exists and is available.
 Launch the Architect as a sub-agent with:
 - Full task file
 - Full `design.md`
+- Relevant spec.md sections: read `spec.md`, extract the module section(s) whose name corresponds to the task's `folders:` per design.md
 - `plan.md`
 - Relevant decisions: read `context/decisions/T-YYY.md` for each task in `tasks/done/` and `tasks/in-progress/` whose `folders:` overlap with the current task's `folders:`
 - Open discoveries: read all `context/discoveries/T-YYY.md` files that exist across done and in-progress tasks; include only entries with `Status: open` (discoveries are cross-module alerts — do not filter by folder)
@@ -46,6 +47,11 @@ The Architect must respond:
 
 ### Current scope
 [Original scope still holds / Recommended adjustment: ...]
+
+### Spec consistency
+[CONSISTENT — task scope matches spec.md for the affected modules]
+[DISCREPANCY: task delivers X but spec.md for [module] does not define X — run /refine or confirm scope with user]
+[INCOMPLETE: spec.md defines Y for [module] but task does not cover it — flag for review]
 
 ### Affected contracts
 [None / List of contracts this task touches — require approval]
@@ -99,6 +105,7 @@ Wait for explicit confirmation. If the user redirects or adjusts scope, incorpor
 Launch the Planner as a background sub-agent with:
 - Approved task file (with any adjustments)
 - `design.md`
+- Relevant spec.md sections: the same module sections passed to the Architect in Phase 1
 - Relevant decisions: content from `context/decisions/T-YYY.md` files selected in Phase 1 (tasks with overlapping folders)
 - Open discoveries: OPEN entries from `context/discoveries/T-YYY.md` files selected in Phase 1
 - List of current files in the task's `folders:`

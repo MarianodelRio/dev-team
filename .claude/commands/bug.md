@@ -50,6 +50,10 @@ Wait for response.
 
 Isolate: which file, which line, which module? Logic error, uncovered edge case, or contract mismatch?
 
+Read `spec.md` for the identified module:
+- **Bug** (behavior violates spec) → standard fix task
+- **Spec gap** (behavior not defined in spec) → fix task should include updating spec.md via /refine alongside the fix
+
 ---
 
 ## Step 3 — Human checkpoint
@@ -62,12 +66,16 @@ Reproduced with: [minimal case]
 Root cause: [clear explanation of WHY it occurs]
 Location: [file:line]
 Module: [name] → agent: [responsible agent name]
+Spec check: [Violates spec.md for [module] / Not defined in spec.md — spec update needed alongside fix]
 
 Proposed fix:
 - [specific change 1]
 - [specific change 2]
 
 Test to add: [what scenario the regression test covers]
+
+[If spec gap:]
+⚠️ spec.md for [module] does not define this behavior — run /refine after the fix to update it
 
 [If the fix crosses modules:]
 ⚠️ Also affects [other module] — requires your explicit authorization

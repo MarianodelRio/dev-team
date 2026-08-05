@@ -16,6 +16,7 @@ bash scripts/dt-board.sh
 
 Read:
 - `design.md` — to understand the existing architecture
+- `spec.md` — to understand the expected behavior of the affected module(s)
 - `plan.md` — to understand phases and the current dependency graph
 - `.dt-index.json` — the current tasks, their IDs, and the dependency graph (to pick the next free ID and check for overlap)
 
@@ -24,6 +25,7 @@ Determine:
 - Which phase this belongs to
 - Which agent should own it (based on folder ownership in `design.md`)
 - Likely dependencies (which existing tasks must be done first)
+- Whether the new task changes a module's behavior beyond what spec.md defines (if so, flag it)
 
 ---
 
@@ -70,6 +72,12 @@ Done when:
 Initial placement: tasks/[available or blocked]/
 
 Does this look right, or should I adjust anything?
+```
+
+If the proposed task changes module behavior beyond what `spec.md` defines:
+```
+⚠️ This task modifies the behavior of [module] beyond its current spec.
+Consider running /refine first — it will update spec.md and propagate the change to related tasks.
 ```
 
 Wait for approval. Iterate if needed.

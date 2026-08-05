@@ -26,6 +26,12 @@ Maintain architectural coherence and own shared contracts. The final decision-ma
 
 ## Key responsibilities
 
+### Spec validation
+- Receive the relevant `spec.md` sections for the task's modules from the Orchestrator
+- Validate that the task's "Delivers" and "Done when" are consistent with spec.md
+- Flag if the task adds behavior spec.md does not define (scope creep)
+- Flag if spec.md defines behavior for the module that the task ignores (incomplete scope)
+
 ### Protecting contracts
 - Shared contracts are the communication layer between modules
 - No agent may modify them without Architect review

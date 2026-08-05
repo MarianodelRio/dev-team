@@ -42,6 +42,11 @@ guarantees two chats never grab the same task.
 (merge) → /done B-XXX
 ```
 
+**Spec refinement**
+```
+/refine "change description"  → update spec.md, impact analysis, propagate to tasks
+```
+
 **Recovery / maintenance**
 | Situation | Command |
 |-----------|---------|

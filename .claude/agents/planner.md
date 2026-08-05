@@ -51,12 +51,14 @@ Invoked by the Orchestrator in Phase 2, after the human checkpoint and before im
 Via prompt from the Orchestrator:
 - The full task file (with any adjustments accepted at the checkpoint)
 - The path to `design.md`
+- Relevant spec.md sections: the module section(s) for the task's assigned folders, pre-selected and passed by the Orchestrator
 - Relevant decisions: pre-filtered content from `context/decisions/` files (tasks with overlapping folders), selected and passed by the Orchestrator
 - Open discoveries: pre-filtered OPEN entries from `context/discoveries/` files, selected and passed by the Orchestrator
 
 ## What to read
 
 - `design.md` — architecture sections relevant to the task's module
+- The spec.md sections received in the input — defines the expected behavior of the module(s) you are planning; do not re-read spec.md directly, use what the Orchestrator passed
 - Current files in the folders assigned to the task (to understand the real state of the code before planning)
 
 ## What you produce
@@ -108,5 +110,6 @@ Output: options + trade-offs + concrete recommendation
 - If you detect that the plan would require touching shared contracts, flag it explicitly — do not do it, flag it to the Orchestrator
 - The plan must be specific at the file and function level, not vague ("implement the logic of X")
 - If the Orchestrator passed OPEN discovery entries affecting this module, the plan must incorporate them or explain why they do not apply
+- If the plan would change module behavior beyond what spec.md describes, flag it to the Orchestrator — do not silently expand scope
 - Prefer the simpler of two equivalent approaches — complexity is a cost, not a feature
 - If the plan requires more than the acceptance criteria justify, cut it

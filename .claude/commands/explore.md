@@ -12,6 +12,7 @@ No production code. No tasks. Investigation only.
 
 Read:
 - `design.md` — architecture and modules involved
+- `spec.md` — module-level behavioral specifications (filter for sections relevant to the topic)
 - `plan.md` — phases and dependencies
 - All files in `context/decisions/` — decisions made per task (read all, filter for relevance to the topic)
 - All files in `context/discoveries/` — cross-agent findings per task (filter OPEN entries for relevance)
