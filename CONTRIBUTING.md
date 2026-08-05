@@ -29,7 +29,7 @@ Open an issue tagged `enhancement`. Describe the problem you're solving, not jus
 
 2. Make your changes. Keep PRs focused — one concern per PR.
 
-3. If you add or change a command (`.claude/commands/`), update `CLAUDE.md` and `README.md` to reflect it.
+3. If you add or change a command (`.claude/commands/`), update `CLAUDE.md`, `README.md`, and `docs/WORKFLOWS.md` to reflect it. If the command interacts with `spec.md`, update `spec.md`'s section in `CLAUDE.md` accordingly.
 
 4. If you add an agent (`.claude/agents/`), document its folder ownership, responsibilities, and which phase of the orchestration pipeline it belongs to.
 
