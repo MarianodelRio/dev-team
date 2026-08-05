@@ -17,7 +17,7 @@ Read (using `.dt-index.json` for status/progress, files for detail):
 - All tasks in `tasks/in-progress/` and `tasks/ready-for-pr/` — what's about to land
 - `design.md` — the intended architecture, plus its Testing strategy and Documentation plan
 - the primary doc file from the Documentation plan (`docs/api.md`, `docs/cli.md`, `docs/usage.md`, …) — available surface
-- `context/decisions.md` — key decisions made
+- All files in `context/decisions/` — key decisions made per task
 - `README.md` — setup instructions
 - `devteam.config.yml` — stack and configuration
 - Any `docker-compose.yml` or startup scripts

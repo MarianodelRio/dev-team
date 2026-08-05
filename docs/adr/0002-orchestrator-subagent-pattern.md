@@ -43,7 +43,7 @@ The PR review phase is absorbed into /orchestrate — the user no longer runs
 - Atomic task claim via branch push
 - Task file lifecycle (available → in-progress → pr-open → done in normal /orchestrate flow;
     ready-for-pr exists as an escape hatch state for /prepare-pr)
-- context/ append-only pattern with git pull before write
+- context/ per-task file pattern (see ADR 0003 — originally append-only flat files, now per-task subfolders)
 - The /done command and post-merge flow
 - All seven framework agents (architect, advisor, and the five review agents: code-quality,
   security, adversarial, smoke-tester, mutation-tester)

@@ -40,7 +40,7 @@ Invoked by the Orchestrator in Phase 4.
 
 ### Documentation
 - The **primary doc file** named in the Documentation plan in `design.md` was updated when this task adds a matching public surface (endpoint → `docs/api.md`, command → `docs/cli.md`, public API → `docs/usage.md`, etc.) — do not assume `docs/api.md` for non-API projects
-- Non-obvious decisions have a comment or entry in `context/decisions.md`
+- Non-obvious decisions have a comment or entry in `context/decisions/T-XXX.md`
 - ADR created if an architectural decision was made
 
 ### Code clarity

@@ -31,8 +31,8 @@ Launch the Architect as a sub-agent with:
 - Full task file
 - Full `design.md`
 - `plan.md`
-- `context/decisions.md` (entries relevant to the module)
-- `context/discoveries.md` (OPEN entries)
+- Relevant decisions: read `context/decisions/T-YYY.md` for each task in `tasks/done/` and `tasks/in-progress/` whose `folders:` overlap with the current task's `folders:`
+- Open discoveries: read all `context/discoveries/T-YYY.md` files that exist across done and in-progress tasks; include only entries with `Status: open` (discoveries are cross-module alerts — do not filter by folder)
 - List of tasks in `tasks/done/` (what was implemented since this task was planned)
 - List of tasks in `tasks/in-progress/` (what is running in parallel)
 
@@ -54,7 +54,7 @@ The Architect must respond:
 [None / Description of potential conflict with T-YYY in in-progress]
 
 ### Relevant discoveries
-[None / Entries from discoveries.md that affect this task]
+[None / Open discovery entries that affect this task]
 
 ### Protected files
 [Touches none / Touches: [list] — requires explicit human approval]
@@ -99,8 +99,8 @@ Wait for explicit confirmation. If the user redirects or adjusts scope, incorpor
 Launch the Planner as a background sub-agent with:
 - Approved task file (with any adjustments)
 - `design.md`
-- Relevant entries from `context/decisions.md`
-- OPEN entries from `context/discoveries.md` affecting this module
+- Relevant decisions: content from `context/decisions/T-YYY.md` files selected in Phase 1 (tasks with overlapping folders)
+- Open discoveries: OPEN entries from `context/discoveries/T-YYY.md` files selected in Phase 1
 - List of current files in the task's `folders:`
 
 Wait for result. The Planner returns the structured plan.
@@ -144,7 +144,7 @@ git rebase origin/main
 ```
 
 If there are conflicts:
-- Mechanical (whitespace, unrelated imports, context/ append): the Orchestrator resolves alone
+- Mechanical (whitespace, unrelated imports): the Orchestrator resolves alone
 - Design (contracts, business logic, schema): the Orchestrator stops and presents to the user:
   ```
   ⚠️ Design conflict in [file:line]

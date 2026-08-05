@@ -34,7 +34,7 @@ git rebase origin/main
 ```
 
 If there are conflicts:
-- Mechanical (whitespace, unrelated imports, context/ append): resolve alone
+- Mechanical (whitespace, unrelated imports): resolve alone
 - Design (contracts, business logic, schema): stop and present to the user:
   ```
   ⚠️ Design conflict in [file:line]
