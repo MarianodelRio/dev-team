@@ -36,6 +36,7 @@ Stage:   [see stage rules below]
 Docs
   IDEA.md     [empty / has content]
   design.md   [missing / exists] [· testing strategy ✓/✗ · doc plan ✓/✗ if design.md exists]
+  spec.md     [missing / exists]
   plan.md     [missing / exists]
 
 Tasks
@@ -59,7 +60,8 @@ Config
 |-------|-------|
 | config empty, IDEA.md empty | `Fresh install — not configured` |
 | config set, IDEA.md has content, no design.md | `Idea defined — ready for /bootstrap` |
-| design.md exists, no tasks | `Design done — needs planning` |
+| design.md exists, no spec.md, no tasks | `Design done — run /bootstrap to generate spec + tasks` |
+| design.md exists, spec.md exists, no tasks | `Spec ready — run /bootstrap to generate tasks` |
 | tasks exist, none in-progress or done | `Planned — ready for /orchestrate` |
 | tasks in-progress or done > 0 | `In progress — N/total complete` |
 | all tasks done | `Complete` |
@@ -242,9 +244,14 @@ Then print **exactly one** of these blocks based on the current stage:
   → Run /bootstrap to generate architecture, plan, and tasks
 ```
 
-**Design done — needs planning:**
+**Design done — run /bootstrap to generate spec + tasks:**
 ```
-  → Run /bootstrap (it will detect your design.md and go straight to planning)
+  → Run /bootstrap (it will detect your design.md, generate spec.md, then generate tasks)
+```
+
+**Spec ready — run /bootstrap to generate tasks:**
+```
+  → Run /bootstrap (it will detect your spec.md and go straight to task generation)
 ```
 
 **Planned — ready for /orchestrate:**
