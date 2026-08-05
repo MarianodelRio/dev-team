@@ -641,7 +641,7 @@ Cada park trae `type + payload + recommendation`. Tabla de decisión:
 |---|---|---|---|
 | `approve_plan` | El análisis del architect (VALID/ADJUSTED/BLOCKED, contratos, protected files) | VALID, no toca contratos/protected, ajuste ≤ umbral | ADJUSTED grande, toca contrato/protected, o BLOCKED |
 | `design_blocker` | Opciones A/B del coder + recomendación | Elección técnica sin trade-off de negocio | Trade-off de diseño/gusto/negocio real |
-| `rebase_conflict` | Conflicto mecánico vs. de diseño | Mecánico (whitespace, imports, append a context/) | De diseño (contrato, lógica, schema) — **siempre al humano** |
+| `rebase_conflict` | Conflicto mecánico vs. de diseño | Mecánico (whitespace, imports) | De diseño (contrato, lógica, schema) — **siempre al humano** |
 | `before_pr` | Veredictos de los reviewers + criterios de aceptación | Todo clean, criterios PASS | Cualquier hard-rule (§6.8) o warning de security |
 
 **Evaluación de un resultado de review (Fase 4):**

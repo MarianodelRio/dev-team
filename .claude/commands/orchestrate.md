@@ -233,6 +233,26 @@ Open the PR?
 Wait for explicit confirmation. If the user requests changes: apply and re-run affected reviewers before proceeding.
 If `before_code` (default): skip this checkpoint and proceed immediately.
 
+**Final sync before opening PR:**
+
+Merges to main may have landed during the review phase. Rebase one last time:
+```bash
+cd ../[project]-T-XXX
+git fetch origin
+git rebase origin/main
+```
+
+If there are conflicts:
+- Mechanical (whitespace, unrelated imports): resolve alone
+- Design (contracts, business logic, schema): present to the user with the same format as the Phase 4 conflict block; note that reviewers already ran — if the conflict touches reviewed code, flag it so the user can decide whether to re-run reviewers
+
+After a clean rebase, run a quick verify to confirm nothing broke with the new changes from main:
+```bash
+[test command] && [lint command] && [type_check command]
+```
+
+If verify fails: treat as a last-minute blocker — send to the Coder via SendMessage with budget 1, then escalate to the user if still failing. Do not open the PR until clean.
+
 **Open PR:**
 Read `workflow.pr_mode` from `devteam.config.yml`:
 

@@ -121,6 +121,29 @@ Fix in the branch and run /prepare-pr T-XXX again
 
 ---
 
+## Step 5b — Final sync before opening PR
+
+Merges to main may have landed during the review phase. Rebase one last time:
+```bash
+git fetch origin
+git rebase origin/main
+```
+
+If there are conflicts:
+- Mechanical (whitespace, unrelated imports): resolve alone
+- Design (contracts, business logic, schema): stop and present to the user with the same conflict format as Step 2; note that reviewers already ran — flag it so the user can decide whether to re-run them
+
+After a clean rebase, run a quick verify:
+```bash
+[test command from devteam.config.yml]
+[lint command from devteam.config.yml]
+[type_check command from devteam.config.yml]
+```
+
+If verify fails: report and stop — do not open the PR until clean. The user must fix and re-run `/prepare-pr T-XXX`.
+
+---
+
 ## Step 6 — Open PR
 
 Read `pr_mode` in `devteam.config.yml`.
