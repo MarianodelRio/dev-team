@@ -264,7 +264,29 @@ Wait for response on this before asking for general plan approval.
 
 Wait for approval.
 
-Once approved:
+**Step 3b — Generate spec.md**
+
+Using the approved design and plan, generate `spec.md`. For each module write:
+- What it does (1-2 sentences — the "what", not the "how")
+- Non-obvious logic: business rules, edge cases, how failures are handled
+- Interface: inputs (source + format), outputs (destination + format), errors raised
+- Out of scope: what this module deliberately does not handle
+
+Then add a "Cross-module flows" section tracing each significant user-facing flow step-by-step through the modules it touches.
+
+Present for approval:
+```
+## Implementation Specification Draft
+
+[spec.md content]
+
+Does this correctly capture the expected behavior of each module?
+Any business rules, edge cases, or failure modes missing?
+```
+
+Wait for response. Iterate if needed. Once approved, write `spec.md`.
+
+Once approved (both plan and spec):
 1. Generate all `tasks/[status]/T-XXX-slug.md` files
    - `tasks/available/` for Phase 0 tasks with no dependencies
    - `tasks/blocked/` for all others
@@ -335,6 +357,7 @@ Bootstrap complete.
 
 Generated:
 ✓ design.md
+✓ spec.md (module behavioral specifications)
 ✓ plan.md
 ✓ X tasks (Y available now, Z blocked)
 ✓ CLAUDE.md (project-specific)
@@ -385,6 +408,8 @@ Generate a Project Context Document:
 - [...]
 ```
 
+Generate `spec.md` from the existing code alongside the Project Context Document — document what the code actually does (not the ideal state).
+
 **MANDATORY CHECKPOINT:**
 ```
 Before generating tasks, I need you to validate this analysis.
@@ -392,15 +417,16 @@ Before generating tasks, I need you to validate this analysis.
 ⚠️ If I document a bug as intentional behavior, agents will replicate it.
 If I miss a hidden constraint, agents will violate it.
 
-Please review the Project Context above:
-- Does it accurately reflect how the project works?
-- Are there hidden constraints or decisions I missed?
-- Is anything marked as "broken" actually intentional?
+Please review:
+1. The Project Context above — does it accurately reflect how the project works?
+2. The spec.md draft — does it correctly capture what each module actually does?
+   - Are there hidden constraints or decisions I missed?
+   - Is anything marked as "broken" actually intentional?
 
 Correct me before we continue.
 ```
 
-Wait for response and update the context document.
+Wait for response and update both the context document and spec.md.
 
 **Phase B — Delta tasks**
 
