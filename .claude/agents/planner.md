@@ -51,8 +51,8 @@ Invoked by the Orchestrator in Phase 2, after the human checkpoint and before im
 Via prompt from the Orchestrator:
 - The full task file (with any adjustments accepted at the checkpoint)
 - The path to `design.md`
-- Relevant content from `context/decisions.md` (entries related to the task's modules)
-- Content from `context/discoveries.md` (OPEN entries affecting this task's agent)
+- Relevant decisions: pre-filtered content from `context/decisions/` files (tasks with overlapping folders), selected and passed by the Orchestrator
+- Open discoveries: pre-filtered OPEN entries from `context/discoveries/` files, selected and passed by the Orchestrator
 
 ## What to read
 
@@ -107,6 +107,6 @@ Output: options + trade-offs + concrete recommendation
 - Never propose touching files outside the task's `folders:`
 - If you detect that the plan would require touching shared contracts, flag it explicitly — do not do it, flag it to the Orchestrator
 - The plan must be specific at the file and function level, not vague ("implement the logic of X")
-- If `context/discoveries.md` has OPEN entries affecting this module, the plan must incorporate them or explain why they do not apply
+- If the Orchestrator passed OPEN discovery entries affecting this module, the plan must incorporate them or explain why they do not apply
 - Prefer the simpler of two equivalent approaches — complexity is a cost, not a feature
 - If the plan requires more than the acceptance criteria justify, cut it

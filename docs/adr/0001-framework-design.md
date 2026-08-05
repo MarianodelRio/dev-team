@@ -54,7 +54,7 @@ dev-team is a framework for parallel, spec-driven software development using AI 
 
 ## Decision 5 — `context/` separate from `docs/`
 
-**Chosen:** Agent coordination files (`decisions.md`, `discoveries.md`) live in `context/`, not `docs/`.
+**Chosen:** Agent coordination files live in `context/`, not `docs/`. Originally implemented as two flat files (`decisions.md`, `discoveries.md`); superseded by per-task files in subfolders (`context/decisions/T-XXX.md`, `context/discoveries/T-XXX.md`) — see ADR 0003.
 
 **Why:** `context/` is operational — it is written during development and read by agents at task start to avoid duplicate decisions and surface cross-module issues. `docs/` is product — it documents what was built, for users and future maintainers. Mixing them blurs the audience and lifecycle. An agent reading `context/` should find fresh, actionable information; an agent reading `docs/` should find stable, authoritative reference material.
 

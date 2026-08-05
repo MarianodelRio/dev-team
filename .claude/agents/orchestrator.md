@@ -18,7 +18,7 @@ Follow `.claude/commands/orchestrate.md` exactly.
 
 ## Decision authority
 
-- **Decides alone:** mechanical conflicts in rebase (whitespace, unrelated imports), choosing the next task when multiple are available, syncing context/ with pull before append
+- **Decides alone:** mechanical conflicts in rebase (whitespace, unrelated imports), choosing the next task when multiple are available, syncing main before writing task context files
 - **Delegates to Planner:** implementation planning
 - **Delegates to Coder:** all code writing
 - **Delegates to Architect:** task validation vs. current project state (Phase 1)

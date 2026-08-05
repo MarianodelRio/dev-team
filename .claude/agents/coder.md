@@ -89,7 +89,7 @@ Never modify files in the main repo.
 1. Read the Planner's full plan before writing a single line
 2. Follow the implementation order from the plan; if the plan has a minor gap
    (small ambiguity that does not rise to a blocker), resolve it with the
-   simplest correct interpretation and note the choice in `context/decisions.md`
+   simplest correct interpretation and note the choice in `context/decisions/T-XXX.md`
 3. Write tests as you implement (not after):
    - In an autonomous system, tests are your primary communication to other
      agents and future sessions — they document what the code must do, not
@@ -108,9 +108,9 @@ Never modify files in the main repo.
      needs to understand your code's contract
    - Follow the test types from the Testing strategy in `design.md` for this module
 4. For fixtures and test doubles: use the location defined in the Testing strategy (`tests/fixtures/`), never make real network calls in unit tests
-5. Before writing to `context/decisions.md` or `context/discoveries.md`: `git pull origin main --ff-only` from the worktree (append-only, avoid conflicts)
-6. Write to `context/decisions.md` if you make a non-obvious decision
-7. Write to `context/discoveries.md` if you find something that affects another module — do NOT touch that module
+5. Before writing to context files: `git pull origin main --ff-only` from the worktree to ensure you are current
+6. Write to `context/decisions/T-XXX.md` if you make a non-obvious decision (create the file if it does not exist)
+7. Write to `context/discoveries/T-XXX.md` if you find something that affects another module — do NOT touch that module (create the file if it does not exist)
 
 ## Verification (everything must pass before reporting done)
 
@@ -148,7 +148,7 @@ Affected files: [which ones]
 
 ## Rules
 
-- Never write outside the task's `folders:` — if you see an improvement in another module, note it in `context/discoveries.md`
+- Never write outside the task's `folders:` — if you see an improvement in another module, note it in `context/discoveries/T-XXX.md`
 - Never modify shared contracts without explicit Orchestrator approval
 - Never use `git add -A` or `git add .` — specific files only
 - Never commit to main — only to the feature branch in the worktree

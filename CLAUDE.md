@@ -46,8 +46,8 @@ tasks/
   cancelled/               ← cancelled tasks (audit trail — never picked up by /orchestrate)
 
 context/
-  decisions.md             ← log of technical decisions (agents write here)
-  discoveries.md           ← cross-agent alerts (agents write here)
+  decisions/               ← per-task decision logs (context/decisions/T-XXX.md)
+  discoveries/             ← per-task cross-agent alerts (context/discoveries/T-XXX.md)
 
 docs/                      ← project documentation (API, ADRs, architecture)
 
@@ -205,8 +205,10 @@ Every PR must pass before merge:
 
 ## Context files
 
-### `context/decisions.md`
-Log of technical decisions. Any agent that makes a non-obvious choice writes here:
+Each task gets its own context files, written by the implementing agent and read by future orchestrations.
+
+### `context/decisions/T-XXX.md`
+Non-obvious implementation decisions made during the task. Created by the Coder on first write.
 ```
 ## YYYY-MM-DD — T-XXX [Agent name]
 Decided: [what]
@@ -215,16 +217,20 @@ Affects: [files/modules]
 Discarded: [alternative and why not]
 ```
 
-### `context/discoveries.md`
-Cross-agent alerts. When an agent finds something that affects another module:
+### `context/discoveries/T-XXX.md`
+Cross-module alerts found during implementation. Created by the Coder on first write.
 ```
 ## OPEN — YYYY-MM-DD [Source agent → Target agent]
 [What was found and what action is needed]
-Task where this should be addressed: T-XXX (or "unassigned")
-Status: open / resolved in T-XXX
+Task where this should be addressed: T-YYY (or "unassigned")
+Status: open / resolved in T-YYY
 ```
 
-The Orchestrator reads both files at the start of each task and surfaces relevant entries in the human checkpoint.
+**How the Orchestrator reads them:** At the start of each task (Phase 1), the Orchestrator selects which files to read:
+- **Decisions:** reads `context/decisions/T-YYY.md` for tasks in `done/` and `in-progress/` whose `folders:` overlap with the current task's `folders:`
+- **Discoveries:** reads all `context/discoveries/T-YYY.md` files across done and in-progress tasks; surfaces entries with `Status: open` (no folder filter — discoveries are cross-module by nature)
+
+The selected content is passed to the Architect (Phase 1) and Planner (Phase 2). Agents do not read the context folders directly.
 
 ---
 
@@ -259,8 +265,8 @@ All framework behavior is controlled by `devteam.config.yml`. See that file for 
 1. **Never touch files outside assigned folders** — even if you see an improvement
 2. **Never modify shared contracts** without explicit human approval
 3. **Always write tests** in the same PR as the implementation
-4. **Always update `context/decisions.md`** when making non-obvious choices
-5. **Always check `context/discoveries.md`** before starting implementation
+4. **Always write to `context/decisions/T-XXX.md`** when making non-obvious choices (create the file if it does not exist)
+5. **The Orchestrator surfaces open discoveries** — agents do not read `context/discoveries/` directly; they incorporate what the Orchestrator passes them
 6. **Planner and Coder work only within their assigned scope** — the Planner does not write code, the Coder does not make architecture decisions. If either needs something outside their role, they escalate to the Orchestrator.
 7. **Never skip the human checkpoint** — present plan, wait for confirmation, then code
 8. **Always update the task** with what was done after marking READY_FOR_PR

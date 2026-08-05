@@ -185,49 +185,15 @@ for dir in available in-progress ready-for-pr pr-open done blocked cancelled; do
 done
 success "tasks/ with subfolders"
 
-info "Creating context files..."
+info "Creating context folders..."
 
-mkdir -p "$TARGET/context"
-
-if [ ! -f "$TARGET/context/decisions.md" ]; then
-  cat > "$TARGET/context/decisions.md" <<'EOF'
-# Decisions
-
-Log of technical decisions made during implementation.
-
-## Format
-
-```
-## YYYY-MM-DD — T-XXX [Agent name]
-Decided: [what]
-Why: [reason]
-Affects: [files/modules]
-Discarded: [alternative and why not]
-```
-EOF
-  success "context/decisions.md"
-else
-  skip "context/decisions.md"
-fi
-
-if [ ! -f "$TARGET/context/discoveries.md" ]; then
-  cat > "$TARGET/context/discoveries.md" <<'EOF'
-# Discoveries
-
-Cross-agent alerts. When an agent finds something that affects another module, it writes here.
-
-## Format
-
-```
-## OPEN — YYYY-MM-DD [Source agent → Target agent]
-[What was found and what action is needed]
-Status: open / resolved in T-XXX
-```
-EOF
-  success "context/discoveries.md"
-else
-  skip "context/discoveries.md"
-fi
+mkdir -p "$TARGET/context/decisions" "$TARGET/context/discoveries"
+for dir in context/decisions context/discoveries; do
+  if [ ! -f "$TARGET/$dir/.gitkeep" ]; then
+    touch "$TARGET/$dir/.gitkeep"
+  fi
+done
+success "context/decisions/ and context/discoveries/ (per-task files written by agents at runtime)"
 
 info "Creating docs/adr/ folder..."
 mkdir -p "$TARGET/docs/adr"

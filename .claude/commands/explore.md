@@ -13,8 +13,8 @@ No production code. No tasks. Investigation only.
 Read:
 - `design.md` — architecture and modules involved
 - `plan.md` — phases and dependencies
-- `context/decisions.md` — decisions already made relevant to the topic
-- `context/discoveries.md` — relevant cross-agent findings
+- All files in `context/decisions/` — decisions made per task (read all, filter for relevance to the topic)
+- All files in `context/discoveries/` — cross-agent findings per task (filter OPEN entries for relevance)
 - Code files relevant to the topic being investigated
 
 ---
