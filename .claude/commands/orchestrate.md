@@ -168,7 +168,7 @@ If there are conflicts:
 
 Full verification before launching reviewers:
 ```bash
-[test command] && [lint command] && [type_check command]
+bash scripts/dt-verify.sh --worktree ../[project]-T-XXX
 ```
 If it fails: SendMessage to the Coder with the specific error → Coder fixes → verify again.
 
@@ -255,7 +255,7 @@ If there are conflicts:
 
 After a clean rebase, run a quick verify to confirm nothing broke with the new changes from main:
 ```bash
-[test command] && [lint command] && [type_check command]
+bash scripts/dt-verify.sh --worktree ../[project]-T-XXX
 ```
 
 If verify fails: treat as a last-minute blocker — send to the Coder via SendMessage with budget 1, then escalate to the user if still failing. Do not open the PR until clean.
@@ -264,10 +264,10 @@ If verify fails: treat as a last-minute blocker — send to the Coder via SendMe
 Read `workflow.pr_mode` from `devteam.config.yml`:
 
 If `pr_mode: automatic` (default):
+
+Write the PR body to a temp file, then call `dt-pr.sh`:
 ```bash
-gh pr create \
-  --title "T-XXX: [task title]" \
-  --body "$(cat <<'EOF'
+cat > /tmp/pr-body-T-XXX.md <<'EOF'
 ## Summary
 - [what was implemented — bullet 1]
 - [what was implemented — bullet 2]
@@ -288,24 +288,26 @@ gh pr create \
 
 🤖 Generated with dev-team
 EOF
-)"
+
+bash scripts/dt-pr.sh T-XXX \
+  --title "T-XXX: [task title]" \
+  --body-file /tmp/pr-body-T-XXX.md
 ```
+The script creates the PR, captures the URL, moves the task to `tasks/pr-open/`, commits to main, and removes the worktree. It outputs `PR_NUMBER` and `PR_URL`.
 
-If `pr_mode: manual`: print the exact command above for the user to run — do not execute it. Wait for the user to confirm the PR was created and provide the PR URL before continuing to "Update task file".
+If `pr_mode: manual`:
 
-Update task file: move to `tasks/pr-open/`, frontmatter `status: pr-open`, `pr: "[URL]"`.
+Print the `gh pr create` command for the user to run:
 ```bash
-git checkout main
-git pull origin main --ff-only
-# move task file, update frontmatter
-git add tasks/pr-open/T-XXX-slug.md
-git commit -m "chore(T-XXX): mark PR_OPEN — PR #[number]"
-git push origin main
+gh pr create \
+  --title "T-XXX: [task title]" \
+  --body-file /tmp/pr-body-T-XXX.md \
+  --head "feature/T-XXX-[slug]" \
+  --base main
 ```
-
-Remove worktree:
+Wait for the user to confirm the PR was created and provide the PR URL. Then:
 ```bash
-git worktree remove ../[project]-T-XXX
+bash scripts/dt-pr.sh T-XXX --pr-url "[URL provided by user]"
 ```
 
 Report to the user and stop:
