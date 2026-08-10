@@ -54,9 +54,7 @@ If there are conflicts:
 ## Step 3 — Verification
 
 ```bash
-[test command from devteam.config.yml]
-[lint command from devteam.config.yml]
-[type_check command from devteam.config.yml]
+bash scripts/dt-verify.sh
 ```
 
 If anything fails: report the specific error and stop. Do not fix behavioral failures automatically.
@@ -135,24 +133,22 @@ If there are conflicts:
 
 After a clean rebase, run a quick verify:
 ```bash
-[test command from devteam.config.yml]
-[lint command from devteam.config.yml]
-[type_check command from devteam.config.yml]
+bash scripts/dt-verify.sh
 ```
 
 If verify fails: report and stop — do not open the PR until clean. The user must fix and re-run `/prepare-pr T-XXX`.
 
 ---
 
-## Step 6 — Open PR
+## Step 6 — Open PR and update task
 
 Read `pr_mode` in `devteam.config.yml`.
 
 If `pr_mode: automatic`:
+
+Write the PR body to a temp file, then call `dt-pr.sh`:
 ```bash
-gh pr create \
-  --title "T-XXX: [task title]" \
-  --body "$(cat <<'EOF'
+cat > /tmp/pr-body-T-XXX.md <<'EOF'
 ## Summary
 - [what was implemented — bullet 1]
 - [what was implemented — bullet 2]
@@ -173,32 +169,31 @@ gh pr create \
 
 🤖 Generated with dev-team
 EOF
-)"
+
+bash scripts/dt-pr.sh T-XXX \
+  --title "T-XXX: [task title]" \
+  --body-file /tmp/pr-body-T-XXX.md
 ```
+The script creates the PR, captures the URL, moves the task from `tasks/ready-for-pr/` to `tasks/pr-open/`, and commits to main. It outputs `PR_NUMBER` and `PR_URL`.
 
-If `pr_mode: manual`: print the exact command for the user to run.
+If `pr_mode: manual`:
 
----
-
-## Step 7 — Update task file
-
-Move `tasks/ready-for-pr/` → `tasks/pr-open/`.
-
-Update frontmatter:
-```yaml
-status: pr-open
-pr: "[PR URL]"
-```
-
+Print the `gh pr create` command for the user to run:
 ```bash
-git add tasks/pr-open/T-XXX-slug.md
-git commit -m "chore(T-XXX): mark PR_OPEN — PR #[number]"
-git push origin main
+gh pr create \
+  --title "T-XXX: [task title]" \
+  --body-file /tmp/pr-body-T-XXX.md \
+  --head "feature/T-XXX-[slug]" \
+  --base main
+```
+Wait for the user to provide the PR URL. Then:
+```bash
+bash scripts/dt-pr.sh T-XXX --pr-url "[URL provided by user]"
 ```
 
 ---
 
-## Step 8 — Human reviewer summary
+## Step 7 — Human reviewer summary
 
 ```
 ## PR Ready for Review — T-XXX

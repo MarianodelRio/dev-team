@@ -2,7 +2,7 @@
 
 All notable changes to dev-team will be documented in this file.
 
-## [Unreleased]
+## [1.1.0] — 2026-08-10
 
 ### Added
 
@@ -25,6 +25,10 @@ All notable changes to dev-team will be documented in this file.
 - **Planner agent** — receives spec.md sections as input; flags to Orchestrator if the plan would exceed the module's defined scope.
 
 - **Coder agent** — improved prompt with explicit layer separation (business logic in service layer, not HTTP handlers), N+1 and bounds checks, and strengthened test criteria (test name = scenario + outcome, one behavior per test, no vacuous assertions).
+
+- **`dt-pr.sh`** — new script that closes the only missing lifecycle transition. Creates the PR via `gh pr create`, captures the URL, moves the task to `pr-open/`, commits to main, and removes the worktree — atomically. Supports `--body-file` (automatic mode) and `--pr-url` (manual mode). Called by `/orchestrate` Phase 4 and `/prepare-pr`.
+
+- **`dt-verify.sh`** — new script that runs `commands.test`, `commands.lint`, and `commands.type_check` from `devteam.config.yml` in the specified directory. Eliminates repeated inline verify blocks from `/orchestrate` (×2) and `/prepare-pr` (×2). Returns structured `VERIFY_RESULT=pass|fail` output.
 
 ## [1.0.0] — 2026-07-24
 
