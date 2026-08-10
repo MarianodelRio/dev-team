@@ -31,9 +31,9 @@ Los conflictos con otros developers (o con otras instancias de dev-agent) se res
 ## Las tres variantes
 
 ```
-one-shot:  scout → code → review(rápido) → PR
-standard:  scout → spec → ✋ → plan → code → review(completo) → PR
-hardened:  scout → spec → ✋ → plan → code → clean → review(completo) → mutate → PR
+one-shot:  [context.md / scout] → code → review(rápido) → PR
+standard:  [context.md / scout] → spec → ✋ → plan → code → review(completo) → PR
+hardened:  [context.md / scout] → spec → ✋ → plan → code → clean → review(completo) → mutate → PR
 ```
 
 ✋ = checkpoint humano obligatorio
@@ -53,13 +53,16 @@ La variante se especifica en el comando o en la configuración del proyecto. No 
 ### one-shot
 
 ```
-1. Scout         lee convenciones del repo, construye Repo Context
-2. Orchestrator  presenta resumen de lo que va a hacer, pide confirmación
-3. Coder         implementa en worktree, escribe tests, pasa test+lint+types
+1. Contexto      lee .dev-agent/context.md si existe; si no, Scout inline → lo cachea
+2. Orchestrator  da-worktree.sh create "[descripción]" → crea worktree + branch
+                 presenta resumen de lo que va a hacer, pide confirmación
+3. Coder         implementa en worktree, escribe tests
+                 da-verify.sh → test+lint+types
 4. [Paralelo]    code-quality + security
 5. Orchestrator  sintetiza reviews, gestiona retries
-                 rebase origin/main → resuelve conflictos
-                 abre PR, destruye worktree
+                 da-rebase.sh → rebase + resolución de conflictos
+                 da-pr.sh → abre PR desde task.md
+                 da-worktree.sh remove → destruye worktree
 ```
 
 No hay spec formal ni plan estructurado. El Coder recibe la descripción original, el Repo Context y las instrucciones del Orchestrator sobre qué cambiar exactamente.
@@ -67,15 +70,22 @@ No hay spec formal ni plan estructurado. El Coder recibe la descripción origina
 ### standard
 
 ```
-1. Scout         lee convenciones del repo, construye Repo Context
-2. Specifier     escribe spec Gherkin + scope + out-of-scope + Done when
-3. ✋ Checkpoint  humano aprueba spec — puede ajustar, Specifier refina y vuelve a presentar
-4. Planner       plan fichero-por-fichero + orden de implementación + tests requeridos
-5. Coder         implementa en worktree, escribe tests, pasa test+lint+types
-6. [Paralelo]    code-quality + security + adversarial*
-7. Orchestrator  sintetiza reviews, gestiona retries
-                 rebase origin/main → resuelve conflictos
-                 abre PR, destruye worktree
+1. Contexto      lee .dev-agent/context.md si existe; si no, Scout inline → lo cachea
+2. Orchestrator  da-worktree.sh create "[descripción]" → crea worktree + branch
+3. Specifier     escribe spec Gherkin + scope + out-of-scope + Done when
+                 da-task.sh init → crea task.md con frontmatter
+4. ✋ Checkpoint  humano aprueba spec — puede ajustar, Specifier refina y vuelve a presentar
+5. Planner       plan fichero-por-fichero + orden de implementación + tests requeridos
+                 da-task.sh status planning → actualiza estado
+6. Coder         implementa en worktree, escribe tests
+                 da-verify.sh → test+lint+types
+                 da-task.sh status coding → actualiza estado
+7. [Paralelo]    code-quality + security + adversarial*
+8. Orchestrator  sintetiza reviews, gestiona retries
+                 da-rebase.sh → rebase + resolución de conflictos
+                 da-verify.sh → verificación final
+                 da-pr.sh → abre PR desde task.md
+                 da-worktree.sh remove → destruye worktree
 ```
 
 *adversarial activa solo si code-quality y security aprueban por unanimidad
@@ -83,16 +93,25 @@ No hay spec formal ni plan estructurado. El Coder recibe la descripción origina
 ### hardened
 
 ```
-1. Scout         lee convenciones del repo, construye Repo Context
-2. Specifier     spec Gherkin extendida: escenarios de edge cases y failure modes
-3. ✋ Checkpoint  humano aprueba spec
-4. Planner       plan + marca funciones críticas para mutation-tester
-5. Coder         implementa en worktree, escribe tests, pasa test+lint+types
-6. Cleaner       CRAP gate: reduce complejidad, extrae funciones largas, mejora naming
-7. [Paralelo]    code-quality + security + adversarial* + smoke-tester + mutation-tester
-8. Orchestrator  sintetiza reviews, gestiona retries
-                 rebase origin/main → resuelve conflictos
-                 abre PR, destruye worktree
+1. Contexto      lee .dev-agent/context.md si existe; si no, Scout inline → lo cachea
+2. Orchestrator  da-worktree.sh create "[descripción]" → crea worktree + branch
+3. Specifier     spec Gherkin extendida: escenarios de edge cases y failure modes
+                 da-task.sh init → crea task.md con frontmatter
+4. ✋ Checkpoint  humano aprueba spec
+5. Planner       plan + marca funciones críticas para mutation-tester
+                 da-task.sh status planning → actualiza estado
+6. Coder         implementa en worktree, escribe tests
+                 da-verify.sh → test+lint+types
+                 da-task.sh status coding → actualiza estado
+7. Cleaner       CRAP gate: reduce complejidad, extrae funciones largas, mejora naming
+                 da-verify.sh → verifica que no rompió nada tras cada cambio
+                 da-task.sh status cleaning → actualiza estado
+8. [Paralelo]    code-quality + security + adversarial* + smoke-tester + mutation-tester
+9. Orchestrator  sintetiza reviews, gestiona retries
+                 da-rebase.sh → rebase + resolución de conflictos
+                 da-verify.sh → verificación final
+                 da-pr.sh → abre PR desde task.md
+                 da-worktree.sh remove → destruye worktree
 ```
 
 ---
@@ -119,11 +138,19 @@ No hay detección temprana de conflictos porque los conflictos pueden venir de c
 
 ---
 
-## El Scout (fase 0, siempre)
+## Contexto de proyecto
 
-No es un agente separado. Es la fase inicial del Orchestrator antes de delegar a ningún sub-agente. Lee el repo para construir el **Repo Context**, que se pasa a todos los agentes durante la sesión.
+El Repo Context es el input que todos los agentes comparten: stack, convenciones, comandos, estructura de tests. Hay dos formas de obtenerlo, con la misma lógica de decisión al inicio de cada `/agent`:
 
-Lee en este orden:
+```
+¿existe .dev-agent/context.md?
+  Sí → leerlo directamente (rápido, sin I/O adicional)
+  No → ejecutar Scout inline → guardar resultado en .dev-agent/context.md
+```
+
+### El Scout (inline)
+
+Cuando no existe `.dev-agent/context.md`, el Orchestrator lo genera leyendo el repo antes de delegar a ningún sub-agente. Lee en este orden:
 
 ```
 CLAUDE.md                            instrucciones del proyecto (si existe)
@@ -140,9 +167,12 @@ src/ o lib/                          lee 2-3 ficheros del módulo más relevante
 devagent.config.yml                  configuración de dev-agent en el proyecto (si existe)
 ```
 
-Produce un **Repo Context** estructurado que incluye:
+Produce `.dev-agent/context.md` con el **Repo Context** estructurado:
 
-```
+```markdown
+# Repo Context
+Generado: 2026-08-10T10:30:00Z
+
 Stack: Python 3.11, FastAPI, SQLAlchemy
 Test runner: pytest — fixtures en tests/conftest.py
 Test structure: unit en tests/unit/, integration en tests/integration/
@@ -160,7 +190,21 @@ Convenciones detectadas:
   - tests nombrados como test_[función]_[escenario]
 ```
 
-Si `devagent.config.yml` no existe en el repo, todo se infiere automáticamente desde los ficheros de configuración y el código existente. Si existe, se usa como base y solo se leen los campos que no estén definidos.
+Si `devagent.config.yml` existe, se usa como base y el Scout solo infiere los campos no definidos.
+
+### La skill `/setup`
+
+Permite generar o regenerar el Repo Context explícitamente, sin necesidad de lanzar una tarea. Útil para:
+- Primera vez que se usa dev-agent en un repo
+- Después de cambios significativos en el proyecto (nueva herramienta de lint, nueva estructura de tests)
+- Cuando el Scout infirió algo incorrectamente y hay que regenerarlo
+
+```bash
+/setup           genera .dev-agent/context.md (o lo regenera si ya existe)
+/setup --print   muestra el contexto generado sin guardar
+```
+
+El fichero `.dev-agent/context.md` está en `.gitignore` — es contexto local de la máquina, no del repositorio. Cada developer genera el suyo. Si el equipo quiere estandarizar valores concretos (comandos de test, umbrales de calidad), eso va en `devagent.config.yml` (que sí se commitea).
 
 ---
 
@@ -251,13 +295,17 @@ El campo `status` evoluciona a lo largo de la sesión:
 Coordina todas las fases. Único punto de contacto con el usuario durante la sesión. No escribe código de producción ni toma decisiones de diseño sin confirmación humana.
 
 Responsabilidades:
-- Ejecutar el Scout (fase 0)
-- Crear el worktree al inicio y destruirlo al final
+- Resolver el Repo Context: leer `.dev-agent/context.md` o ejecutar Scout inline
+- Llamar a `da-config.sh` para obtener la configuración fusionada al inicio
+- Llamar a `da-worktree.sh create` para crear el worktree y el branch
+- Llamar a `da-task.sh init` para crear task.md, y `da-task.sh status` para actualizarlo
 - Lanzar sub-agentes en el orden correcto según la variante
 - Presentar el checkpoint y esperar aprobación
-- Hacer el rebase pre-PR y resolver conflictos mecánicos
+- Llamar a `da-verify.sh` tras el Coder, tras el Cleaner, y antes del PR
+- Llamar a `da-rebase.sh` pre-PR y resolver el resultado según el tipo de conflicto
 - Sintetizar resultados del review y gestionar retries
-- Abrir el PR con el contenido de task.md
+- Llamar a `da-pr.sh` para abrir el PR desde task.md
+- Llamar a `da-worktree.sh remove` para destruir el worktree al final
 
 Escala al usuario cuando:
 - Conflicto de rebase de lógica (no mecánico)
@@ -477,32 +525,200 @@ Respuestas posibles:
 
 ## Gestión del worktree
 
-```
-slug    derivado de la descripción: "add user csv export" → "add-user-csv-export"
-branch  feature/[slug] para features, fix/[slug] para bugs
+El Orchestrator gestiona el worktree llamando a scripts. El usuario no interactúa con él directamente.
 
-INICIO (antes del Specifier en standard/hardened, antes del Coder en one-shot)
-  git fetch origin
-  git worktree add ../[repo]-[slug] -b feature/[slug]
-  Coder y Cleaner trabajan exclusivamente en ../[repo]-[slug]/
+```
+INICIO
+  da-worktree.sh create "[descripción de la tarea]"
+  → genera slug, determina branch (feature/ o fix/)
+  → git worktree add ../[repo]-[slug] -b feature/[slug]
+  → devuelve: WORKTREE_PATH, BRANCH
+  Coder y Cleaner trabajan exclusivamente en WORKTREE_PATH
   Los reviewers analizan el diff, no trabajan en el worktree
 
-PRE-PR (siempre, antes de gh pr create)
-  cd ../[repo]-[slug]
-  git fetch origin
-  git rebase origin/main
-    → conflictos mecánicos: Orchestrator resuelve
-    → conflictos de lógica: escala al usuario
-  test && lint && type_check
-    → si falla: SendMessage al Coder para corregir
+TRAS EL CODER / CLEANER
+  da-verify.sh --worktree WORKTREE_PATH
+  → ejecuta test, lint, type_check con los comandos del config
+  → devuelve: OVERALL=PASS|FAIL, detalle de cada gate
+  → si FAIL: SendMessage al Coder con el output de error
+
+PRE-PR
+  da-rebase.sh --worktree WORKTREE_PATH
+  → git fetch origin && git rebase origin/main
+  → devuelve: STATUS=CLEAN|MECHANICAL_RESOLVED|LOGICAL_CONFLICT
+  → CLEAN / MECHANICAL_RESOLVED: continúa
+  → LOGICAL_CONFLICT: Orchestrator presenta el diff al usuario y espera decisión
+  da-verify.sh --worktree WORKTREE_PATH   (verificación final tras rebase)
 
 PR ABIERTO
-  gh pr create [...]
-  git worktree remove ../[repo]-[slug]
-  El branch remoto queda vivo hasta que el equipo decida mergearlo y borrarlo
+  da-pr.sh --worktree WORKTREE_PATH --task task.md
+  → lee task.md, adapta al PR template del repo si existe
+  → gh pr create → devuelve PR_URL
+  da-worktree.sh remove WORKTREE_PATH
+  → git worktree remove, limpia referencias locales
+  → el branch remoto queda hasta que el equipo lo mergee
 ```
 
-El usuario no interactúa con el worktree directamente. El Orchestrator lo crea y destruye de forma transparente.
+---
+
+## Scripts
+
+Prefijo `da-` (dev-agent). Misma filosofía que `dt-*` en dev-team: encapsulan operaciones mecánicas repetitivas para que el LLM solo lea un output estructurado y tome decisiones, sin gastar tokens en I/O, comandos git o formatting.
+
+Todos los scripts leen `devagent.config.yml` via `da-config.sh` para obtener los comandos configurados. Todos admiten `--dry-run`.
+
+---
+
+### `da-config.sh` — Lectura de configuración
+
+Fusiona `devagent.config.yml` (valores explícitos del equipo) con los valores auto-detectados del Repo Context. Expone la configuración resultante como pares `key=value`.
+
+```bash
+da-config.sh                        imprime toda la config fusionada
+da-config.sh defaults.variant       → standard
+da-config.sh quality.crap_threshold → 15
+da-config.sh commands.test          → pytest  (del config o auto-detectado)
+```
+
+Todos los demás scripts sourcean `da-config.sh` internamente. El Orchestrator lo llama al inicio de cada sesión para tener la configuración disponible.
+
+---
+
+### `da-worktree.sh` — Ciclo de vida del worktree
+
+```bash
+da-worktree.sh create "[descripción de la tarea]"
+# Genera slug desde la descripción (lowercase, hyphens, max 50 chars)
+# Determina prefijo: feature/ para features, fix/ para bugs
+# Ejecuta: git fetch origin && git worktree add ../[repo]-[slug] -b feature/[slug]
+# Output:
+#   WORKTREE_PATH=../repo-add-user-csv-export
+#   BRANCH=feature/add-user-csv-export
+#   SLUG=add-user-csv-export
+# Falla si el branch ya existe en remote (otra instancia ya lo reclamó)
+
+da-worktree.sh remove ../repo-add-user-csv-export
+# git worktree remove [path] --force
+# Limpia referencias locales al branch
+# El branch remoto no se toca (el equipo decide cuándo borrarlo)
+
+da-worktree.sh list
+# Lista worktrees activos con path, branch y fecha de creación
+```
+
+---
+
+### `da-verify.sh` — Gate de calidad
+
+Es el script más llamado: después del Coder, después del Cleaner (cada cambio), y antes del PR. Cada llamada sin script cuesta tokens describiendo cómo correr los comandos y parsear el output.
+
+```bash
+da-verify.sh [--worktree ../repo-slug]
+# Lee comandos de da-config.sh (test, lint, type_check)
+# Ejecuta en orden: test → lint → type_check
+# Para en el primero que falle
+# Output:
+#   TEST=PASS|FAIL
+#   LINT=PASS|FAIL
+#   TYPE=PASS|FAIL
+#   OVERALL=PASS|FAIL
+#   ERRORS=[output exacto de los comandos que fallaron]
+# Sin --worktree: corre en el directorio actual
+```
+
+---
+
+### `da-rebase.sh` — Rebase pre-PR con detección de conflictos
+
+Detecta si los conflictos son mecánicos (los resuelve) o de lógica (los reporta sin tocar nada, el Orchestrator escala al usuario).
+
+```bash
+da-rebase.sh [--worktree ../repo-slug]
+# git fetch origin
+# git rebase origin/main
+# Analiza conflictos si los hay:
+#   Marcadores de conflicto en: whitespace, imports, orden de líneas → resuelve y continúa
+#   Marcadores en: lógica de funciones, condiciones, valores → no toca
+# Output:
+#   STATUS=CLEAN|MECHANICAL_RESOLVED|LOGICAL_CONFLICT
+#   CONFLICTS=[lista de ficheros + diff exacto del conflicto, solo si LOGICAL_CONFLICT]
+```
+
+El Orchestrator solo lee `STATUS`. Si es `LOGICAL_CONFLICT`, presenta `CONFLICTS` al usuario con el diff exacto y espera instrucciones.
+
+---
+
+### `da-pr.sh` — Creación del PR
+
+Lee `task.md` y genera el PR. Si existe `.github/PULL_REQUEST_TEMPLATE.md` en el repo, adapta el body a ese formato.
+
+```bash
+da-pr.sh --worktree ../repo-slug [--dry-run]
+# Lee task.md del worktree: título, spec Gherkin, plan, implementation notes, review results
+# Lee .github/PULL_REQUEST_TEMPLATE.md si existe
+# Genera el body del PR adaptado al template o con formato por defecto
+# Ejecuta: gh pr create --title "[título]" --body "[body]"
+# Output:
+#   PR_URL=https://github.com/org/repo/pull/42
+# --dry-run: imprime el comando sin ejecutarlo
+```
+
+---
+
+### `da-task.sh` — Gestión de task.md
+
+Crea y actualiza el fichero `task.md` que actúa como estado compartido entre agentes durante la sesión.
+
+```bash
+da-task.sh init --variant=standard --branch=feature/add-user-csv-export [--worktree ../repo-slug]
+# Crea task.md con frontmatter inicial (variant, status=specifying, branch)
+
+da-task.sh status coding [--worktree ../repo-slug]
+# Actualiza el campo status en el frontmatter
+# Valores válidos: specifying → planning → coding → cleaning → reviewing → done
+
+da-task.sh get branch [--worktree ../repo-slug]
+# Imprime el valor de un campo del frontmatter
+
+da-task.sh append-notes "Decidí usar streaming porque..." [--worktree ../repo-slug]
+# Añade una entrada al bloque ## Implementation Notes con timestamp
+```
+
+---
+
+### Dónde llama el Orchestrator a cada script
+
+```
+INICIO DE SESIÓN
+  da-config.sh              → obtiene configuración fusionada
+
+CREACIÓN DEL WORKTREE
+  da-worktree.sh create     → worktree + branch
+
+TRAS SPECIFIER
+  da-task.sh init           → crea task.md
+
+TRAS APROBACIÓN DEL CHECKPOINT
+  da-task.sh status planning
+
+TRAS PLANNER
+  da-task.sh status coding
+
+TRAS CODER
+  da-verify.sh              → gate calidad
+  da-task.sh status reviewing  (si pasa) / permanece en coding (si falla → retry)
+
+TRAS CLEANER (hardened, cada cambio)
+  da-verify.sh              → verifica que no rompió nada
+
+PRE-PR
+  da-rebase.sh              → rebase + detección de conflictos
+  da-verify.sh              → verificación final tras rebase
+
+PR
+  da-pr.sh                  → crea PR desde task.md
+  da-worktree.sh remove     → destruye worktree
+```
 
 ---
 
@@ -611,6 +827,16 @@ Esto permite que un proyecto con convenciones específicas (por ejemplo, "aquí 
 dev-agent/
   README.md
   devagent.config.yml              template de config para copiar al repo del usuario
+  .gitignore                       incluye .dev-agent/
+
+  scripts/
+    da-config.sh                   lectura de configuración fusionada
+    da-worktree.sh                 ciclo de vida del worktree (create / remove / list)
+    da-verify.sh                   gate test+lint+type_check
+    da-rebase.sh                   rebase pre-PR con detección de conflictos
+    da-pr.sh                       creación del PR desde task.md
+    da-task.sh                     gestión de task.md (init / status / get / append-notes)
+    da-common.sh                   helpers compartidos (sourced, no ejecutable directo)
 
   .claude/
     agents/
@@ -628,6 +854,7 @@ dev-agent/
       agent.md                     /agent — comando principal (standard por defecto)
       one-shot.md                  /one-shot — alias variante rápida
       hardened.md                  /hardened — alias variante máxima
+      setup.md                     /setup — genera o regenera .dev-agent/context.md
 
     constitution/
       engineering.md
@@ -637,6 +864,13 @@ dev-agent/
 
   docs/
     adr/                           decisiones de arquitectura del propio framework
+
+---
+
+En el repo del usuario (generado por /setup o al primera /agent):
+
+  .dev-agent/                      git-ignored — contexto local de la máquina
+    context.md                     Repo Context generado por el Scout
 ```
 
 ---
