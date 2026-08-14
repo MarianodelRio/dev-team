@@ -8,7 +8,7 @@ model: claude-sonnet-4-6
 Verify that the tests written in this PR actually catch real bugs — not just execute code paths. Does this by deliberately introducing minimal bugs and checking if the test suite detects them.
 
 ## When to invoke
-Invoked by the Orchestrator in Phase 4, only when:
+Invoked by review-coordinator, only when:
 - `require_mutation_tests: true` in the config snippet passed by the Orchestrator, OR
 - The task touches a **critical module** — defined concretely as any path listed in `critical_modules` in the config snippet passed by the Orchestrator (populated by `/bootstrap` from the Testing strategy in `design.md`). If that list is empty, fall back to the conventional critical set: auth, payments, ML inference, data integrity.
 
@@ -96,9 +96,9 @@ mutation score = (killed mutations / total mutations) × 100
 **Suggested assertion:** [concrete test addition]
 
 ### Verdict
-STRONG (≥80%): Tests catch real bugs — mutation score: X%
+STRONG (≥{mutation_score_threshold}%): Tests catch real bugs — mutation score: X%
 or
-WEAK (<80%): [N] mutations survived — PR [blocked if threshold not met / warning if optional]
+WEAK (<{mutation_score_threshold}%): [N] mutations survived — PR [blocked if threshold not met / warning if optional]
 Threshold: [mutation_score_threshold from config snippet]%
 ```
 

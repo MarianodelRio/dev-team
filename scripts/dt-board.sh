@@ -24,14 +24,29 @@ for arg in "$@"; do
   esac
 done
 
+# ISS-090: mtime-based cache — skip rebuild if no task file is newer than the index
+# Only skip when not printing; --print always requires a fresh build.
+if [[ "$DO_PRINT" -eq 0 && -f "$DT_INDEX" ]]; then
+  NEWER=$(find "$REPO_ROOT/tasks/" -newer "$DT_INDEX" -name "*.md" 2>/dev/null | head -1)
+  if [[ -z "$NEWER" ]]; then
+    exit 0  # Cache is fresh; nothing to rebuild
+  fi
+fi
+
 [ "$DO_FETCH" -eq 1 ] && git -C "$REPO_ROOT" fetch origin --quiet 2>/dev/null || true
 
 # Remote feature/fix branches → used to mark claimed tasks.
 REMOTE_BRANCHES="$(git -C "$REPO_ROOT" branch -r 2>/dev/null | sed 's/^[[:space:]]*//' | grep -E 'origin/(feature|fix)/' || true)"
 
-declare -A T_STATUS T_PHASE T_AGENT T_DEPS T_BRANCH T_PR T_TITLE T_FOLDER
-declare -A UNBLOCKS
-DONE_IDS=" "
+# ISS-073: Replace declare -A (Bash 4+ only) with a temp-directory key-value store
+# that works on Bash 3.2 (default on macOS).
+TDIR=$(mktemp -d)
+trap 'rm -rf "$TDIR"' EXIT
+
+tset()  { printf '%s' "$3"   > "$TDIR/$1.$2"; }       # tset  MAP KEY VALUE
+tget()  { cat "$TDIR/$1.$2" 2>/dev/null || true; }    # tget  MAP KEY
+tadd()  { printf ' %s' "$3" >> "$TDIR/$1.$2"; }       # tadd  MAP KEY VALUE (space-sep append)
+
 ALL_IDS=""
 
 # ── Pass 1: read every task file ─────────────────────────────────────────────
@@ -40,30 +55,31 @@ for folder in $TASK_FOLDERS; do
     [ -e "$f" ] || continue
     id="$(task_field "$f" id)"
     [ -n "$id" ] || continue
-    T_FOLDER[$id]="$folder"
-    T_STATUS[$id]="$(task_field "$f" status)"
-    T_PHASE[$id]="$(task_field "$f" phase)"
-    T_AGENT[$id]="$(task_field "$f" agent)"
-    T_BRANCH[$id]="$(task_field "$f" branch)"
-    T_PR[$id]="$(task_field "$f" pr)"
-    T_DEPS[$id]="$(task_depends_on "$f")"
+    tset FOLDER  "$id" "$folder"
+    tset STATUS  "$id" "$(task_field "$f" status)"
+    tset PHASE   "$id" "$(task_field "$f" phase)"
+    tset AGENT   "$id" "$(task_field "$f" agent)"
+    tset BRANCH  "$id" "$(task_field "$f" branch)"
+    tset PR      "$id" "$(task_field "$f" pr)"
+    tset DEPS    "$id" "$(task_depends_on "$f")"
+    # ISS-059: DONE_IDS was computed but never used — removed.
     # Title = first "## " heading, quotes neutralised for JSON.
-    T_TITLE[$id]="$(grep -m1 '^## ' "$f" | sed 's/^## //; s/"/'"'"'/g' | sed 's/[[:space:]]*$//')"
+    tset TITLE   "$id" "$(grep -m1 '^## ' "$f" | sed 's/^## //; s/"/'"'"'/g' | sed 's/[[:space:]]*$//')"
     ALL_IDS="$ALL_IDS $id"
-    [ "$folder" = "done" ] && DONE_IDS="$DONE_IDS$id "
   done
 done
 
 # ── Pass 2: invert depends_on into unblocks ──────────────────────────────────
 for id in $ALL_IDS; do
-  for dep in ${T_DEPS[$id]}; do
+  for dep in $(tget DEPS "$id"); do
     [ -n "$dep" ] || continue
-    UNBLOCKS[$dep]="${UNBLOCKS[$dep]:-} $id"
+    tadd UNBLOCKS "$dep" "$id"
   done
 done
 
 claimed_remote() {
-  local id="$1" br="${T_BRANCH[$1]:-}"
+  local id="$1" br
+  br="$(tget BRANCH "$id")"
   # Explicit branch field first, else the conventional pattern.
   if [ -n "$br" ] && [ "$br" != "~" ]; then
     echo "$REMOTE_BRANCHES" | grep -q "origin/$br$" && { echo true; return; }
@@ -89,9 +105,9 @@ id_num() { printf '%d' "${1#*-}"; }
 CRIT_NEXT=""
 CRIT_SCORE=-1
 for id in $ALL_IDS; do
-  [ "${T_FOLDER[$id]}" = "available" ] || continue
+  [ "$(tget FOLDER "$id")" = "available" ] || continue
   [ "$(claimed_remote "$id")" = "false" ] || continue
-  n=0; for u in ${UNBLOCKS[$id]:-}; do n=$((n+1)); done
+  n=0; for u in $(tget UNBLOCKS "$id"); do n=$((n+1)); done
   if [ "$n" -gt "$CRIT_SCORE" ]; then
     CRIT_SCORE=$n; CRIT_NEXT="$id"
   elif [ "$n" -eq "$CRIT_SCORE" ] && [ -n "$CRIT_NEXT" ]; then
@@ -99,7 +115,7 @@ for id in $ALL_IDS; do
   fi
 done
 
-# ── Write .dt-index.json ─────────────────────────────────────────────────────
+# ── Write .dt-index.json (ISS-006: atomic write via tmp + rename) ─────────────
 {
   echo "{"
   echo "  \"generated\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\","
@@ -108,21 +124,21 @@ done
   for id in $ALL_IDS; do
     [ "$first" -eq 1 ] && first=0 || echo ","
     printf '    "%s": {' "$id"
-    printf '"status": "%s", ' "$(js "${T_STATUS[$id]}")"
-    printf '"folder": "%s", ' "${T_FOLDER[$id]}"
-    printf '"phase": "%s", ' "$(js "${T_PHASE[$id]}")"
-    printf '"agent": "%s", ' "$(js "${T_AGENT[$id]}")"
-    printf '"title": "%s", ' "$(js "${T_TITLE[$id]:-}")"
-    printf '"branch": "%s", ' "$(js "${T_BRANCH[$id]}")"
-    printf '"pr": "%s", ' "$(js "${T_PR[$id]}")"
-    printf '"depends_on": %s, ' "$(json_arr "${T_DEPS[$id]}")"
-    printf '"unblocks": %s, ' "$(json_arr "${UNBLOCKS[$id]:-}")"
+    printf '"status": "%s", ' "$(js "$(tget STATUS "$id")")"
+    printf '"folder": "%s", ' "$(tget FOLDER "$id")"
+    printf '"phase": "%s", ' "$(js "$(tget PHASE "$id")")"
+    printf '"agent": "%s", ' "$(js "$(tget AGENT "$id")")"
+    printf '"title": "%s", ' "$(js "$(tget TITLE "$id")")"
+    printf '"branch": "%s", ' "$(js "$(tget BRANCH "$id")")"
+    printf '"pr": "%s", ' "$(js "$(tget PR "$id")")"
+    printf '"depends_on": %s, ' "$(json_arr "$(tget DEPS "$id")")"
+    printf '"unblocks": %s, ' "$(json_arr "$(tget UNBLOCKS "$id")")"
     printf '"claimed_remote": %s}' "$(claimed_remote "$id")"
   done
   [ "$first" -eq 0 ] && echo ""
   echo "  },"
   # summary
-  cnt() { local c=0 i; for i in $ALL_IDS; do [ "${T_FOLDER[$i]}" = "$1" ] && c=$((c+1)); done; echo "$c"; }
+  cnt() { local c=0 i; for i in $ALL_IDS; do [ "$(tget FOLDER "$i")" = "$1" ] && c=$((c+1)); done; echo "$c"; }
   echo "  \"summary\": {"
   echo "    \"available\": $(cnt available),"
   echo "    \"in_progress\": $(cnt in-progress),"
@@ -134,19 +150,20 @@ done
   echo "    \"critical_path_next\": \"$CRIT_NEXT\""
   echo "  }"
   echo "}"
-} > "$DT_INDEX"
+} > "${DT_INDEX}.tmp"
+mv "${DT_INDEX}.tmp" "$DT_INDEX"
 
 # ── Optional human board ─────────────────────────────────────────────────────
 if [ "$DO_PRINT" -eq 1 ]; then
   echo "dev-team board — $(dt_project_name)"
   for folder in done pr-open ready-for-pr in-progress available blocked; do
-    ids=""; for id in $ALL_IDS; do [ "${T_FOLDER[$id]}" = "$folder" ] && ids="$ids $id"; done
+    ids=""; for id in $ALL_IDS; do [ "$(tget FOLDER "$id")" = "$folder" ] && ids="$ids $id"; done
     [ -n "$ids" ] || continue
     echo ""
     echo "[$folder]"
     for id in $ids; do
       mark=""; [ "$id" = "$CRIT_NEXT" ] && mark=" ⭐"
-      echo "  $id — ${T_TITLE[$id]:-}$mark"
+      echo "  $id — $(tget TITLE "$id")$mark"
     done
   done
   if [ -n "$CRIT_NEXT" ]; then echo ""; echo "Suggested next: $CRIT_NEXT"; fi

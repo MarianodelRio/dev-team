@@ -40,6 +40,36 @@ Tasks that depend on this one (would be affected by cancellation):
 
 ---
 
+## Step 2.5 — Handle pr-open tasks
+
+If the task status is `pr-open`, offer a non-destructive alternative before proceeding to the cancellation checkpoint:
+
+```
+⚠️ [ID] has an open PR: [PR URL from frontmatter]
+
+Instead of cancelling permanently, you can move it back to available for a retry:
+  retry  — Close the PR and reset the task to available (branch and pr fields cleared to ~)
+  cancel — Cancel permanently (moves to tasks/cancelled/)
+
+retry or cancel?
+```
+
+If the user chooses **retry**:
+1. Close the GitHub PR: `gh pr close [PR_URL] --comment "Closing for retry — task reset to available"`
+2. Update the task frontmatter: set `branch: ~`, `pr: ~`, `status: available`
+3. Move the task file from `tasks/pr-open/` to `tasks/available/`
+4. Commit and push to main
+5. Report:
+   ```
+   ✓ [ID] PR closed and task reset to available.
+   Run /orchestrate to start a fresh attempt.
+   ```
+   Stop — do not proceed to Step 3.
+
+If the user chooses **cancel**, continue to Step 3.
+
+---
+
 ## Step 3 — Mandatory human checkpoint
 
 ```

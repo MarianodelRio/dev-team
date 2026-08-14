@@ -48,7 +48,7 @@ Config
   Models:      reasoning=[model] · implementation=[model] · fast=[model]
   PR mode:     [automatic / manual]
   Checkpoint:  [before_code / before_pr / both]
-  Parallel:    [max_parallel_tasks]
+  Parallel:    [orchestration.max_parallel_tasks from config, default: 5]
   Quality:     coverage=[N]% · security=[on/off] · smoke=[on/off] · mutation=[on/off]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -65,6 +65,33 @@ Config
 | tasks exist, none in-progress or done | `Planned — ready for /orchestrate` |
 | tasks in-progress or done > 0 | `In progress — N/total complete` |
 | all tasks done | `Complete` |
+
+---
+
+## Step 2b — Validate configuration
+
+After displaying the state card, check these two config values and warn inline if they are invalid. Run silently — only print output when a problem is found.
+
+**`review_profile`** must be one of `minimal`, `standard`, or `full`:
+```bash
+CFG_REVIEW_PROFILE=$(grep -E '^  review_profile:' devteam.config.yml | awk '{print $2}')
+```
+If the value is not empty and not one of the three valid options, print:
+```
+⚠️  WARNING: review_profile '[value]' is not valid. Accepted values: minimal | standard | full
+```
+
+**`git.base_branch`** must exist on the remote:
+```bash
+BASE_BRANCH=$(grep 'base_branch:' devteam.config.yml | awk '{print $2}')
+git ls-remote --heads origin "$BASE_BRANCH"
+```
+If the `git ls-remote` command returns no output (branch not found on remote), print:
+```
+⚠️  WARNING: git.base_branch '[value]' does not exist on remote origin. Check devteam.config.yml.
+```
+
+Skip both checks if the respective field is empty, `~`, or absent from the config.
 
 ---
 

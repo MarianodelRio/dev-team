@@ -7,37 +7,13 @@ You do not implement — you create the task for /orchestrate to execute.
 
 ---
 
-## Step 1 — Create bug task (placeholder)
+## Step 1 — Investigate
 
-Generate ID: B-001, B-002, etc. (check tasks/ for the next available one).
-
-Create `tasks/available/B-XXX-[slug].md` with minimal frontmatter:
-```yaml
----
-id: B-XXX
-type: bug
-agent: TBD
-status: available
-branch: ~
-pr: ~
----
-## [Symptom]
-Reported: [date]
-Root cause: INVESTIGATING
-```
-
-Commit to main (to register that the bug was reported):
-```bash
-git add tasks/available/B-XXX-slug.md
-git commit -m "chore(B-XXX): file bug — [short symptom]"
-git push origin main
-```
-
----
-
-## Step 2 — Investigate
+Generate the next available ID: B-001, B-002, etc. (check tasks/ for the next available one). Do NOT create any file yet.
 
 Reproduce the bug with the minimal possible case.
+
+Limit investigation to the folders referenced in the bug description and their direct imports/dependencies. If the root cause appears to be in an unrelated module, surface that hypothesis to the user rather than investigating further without authorization.
 
 If it cannot be reproduced:
 ```
@@ -46,7 +22,7 @@ Need more information:
 - [question 1]
 - [question 2]
 ```
-Wait for response.
+Exit with this summary. Do NOT create any file.
 
 Isolate: which file, which line, which module? Logic error, uncovered edge case, or contract mismatch?
 
@@ -56,7 +32,7 @@ Read `spec.md` for the identified module:
 
 ---
 
-## Step 3 — Human checkpoint
+## Step 2 — Human checkpoint
 
 Present diagnosis:
 ```
@@ -83,13 +59,13 @@ Test to add: [what scenario the regression test covers]
 Questions: [or "None"]
 ```
 
-Wait for confirmation. **Do not create the final task without confirmation.**
+Wait for confirmation. **Do not create any file without confirmation.**
 
 ---
 
-## Step 4 — Create complete fix task
+## Step 3 — Create fix task
 
-Update `tasks/available/B-XXX-[slug].md` with the complete diagnosis:
+Create `tasks/available/B-XXX-[slug].md` with the complete diagnosis:
 
 ```yaml
 ---
@@ -124,13 +100,39 @@ pr: ~
 
 ```bash
 git add tasks/available/B-XXX-slug.md
-git commit -m "chore(B-XXX): complete bug investigation — root cause identified"
+git commit -m "chore(B-XXX): file bug — [short symptom]"
 git push origin main
+```
+
+---
+
+## Step 4 — Persist investigation summary
+
+Write the full investigation summary to `context/decisions/B-XXX.md`:
+
+```markdown
+## B-XXX — Investigation Summary
+Date: [date]
+
+### Root cause
+[clear explanation]
+
+### Evidence found
+- [file:line — what was observed]
+- [test or log output that confirmed the bug]
+
+### Hypotheses ruled out
+- [hypothesis 1] — ruled out because [reason]
+- [hypothesis 2] — ruled out because [reason]
+
+### Fix approach
+[description of the fix and why this approach was chosen]
 ```
 
 Report and stop:
 ```
 ✓ B-XXX created in tasks/available/
+✓ Investigation summary written to context/decisions/B-XXX.md
 
 Root cause: [one-line summary]
 Module: [module] — agent: [agent]
@@ -146,4 +148,6 @@ To implement the fix: run /orchestrate
 - Never implement code in this command — only investigate and create the task
 - Always reproduce before diagnosing
 - Always checkpoint before creating the final task
+- If it cannot be reproduced: exit with a summary, do NOT create any file
+- Limit investigation to the folders referenced in the bug description and their direct imports/dependencies; if the root cause appears to be in an unrelated module, surface that hypothesis to the user rather than investigating further without authorization
 - If the fix requires touching multiple modules: create one task per module with dependencies

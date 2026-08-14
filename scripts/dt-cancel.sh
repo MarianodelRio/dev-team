@@ -16,7 +16,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY=1 ;;
     --delete-branch) DELBR=1 ;;
-    --reason) shift; REASON="${1:-}" ;;
+    --reason) [[ -z "${2:-}" ]] && { echo "ERROR: --reason requires a value"; exit 1; }; shift; REASON="$1" ;;
     *) ID="$1" ;;
   esac
   shift
@@ -26,6 +26,11 @@ validate_id "$ID"
 
 FILE="$(find_task_file "$ID")" || die "$ID not found in tasks/"
 case "$FILE" in *"/tasks/done/"*) die "$ID is already DONE and cannot be cancelled" ;; esac
+CURRENT_STATUS="$(task_field "$FILE" status)"
+if [[ "$CURRENT_STATUS" == "cancelled" ]]; then
+  echo "Task $ID is already cancelled."
+  exit 0
+fi
 BRANCH="$(task_branch_from_file "$FILE")"
 WT="$(dt_worktree_path "$ID")"
 NEWFILE="$REPO_ROOT/tasks/cancelled/$(basename "$FILE")"
@@ -40,7 +45,21 @@ fi
 
 sync_main
 
+if [[ "$CURRENT_STATUS" == "pr-open" ]]; then
+  PR_URL="$(task_field "$FILE" pr)"
+  if [[ -n "$PR_URL" && "$PR_URL" != "~" ]]; then
+    gh pr close "$PR_URL" --comment "Task $ID cancelled: ${REASON:-not specified}" && ok "closed PR $PR_URL" || true
+  fi
+fi
+
 [ -e "$WT" ] && { git -C "$REPO_ROOT" worktree remove --force "$WT" 2>/dev/null && ok "removed worktree" || true; }
+
+if [[ "$CURRENT_STATUS" == "in-progress" ]]; then
+  if [[ -n "$BRANCH" ]]; then
+    BRANCH_WT=$(git -C "$REPO_ROOT" worktree list --porcelain | grep -B1 "branch refs/heads/$BRANCH" | head -1 | awk '{print $2}')
+    [[ -n "$BRANCH_WT" ]] && git -C "$REPO_ROOT" worktree remove --force "$BRANCH_WT" 2>/dev/null || true
+  fi
+fi
 
 if [ "$DELBR" -eq 1 ]; then
   git -C "$REPO_ROOT" branch -D "$BRANCH" 2>/dev/null || true
@@ -58,7 +77,10 @@ mkdir -p "$REPO_ROOT/tasks/cancelled"
 mv "$FILE" "$NEWFILE"
 git -C "$REPO_ROOT" add "$FILE" "$NEWFILE"
 git -C "$REPO_ROOT" commit -m "chore($ID): cancel task" --quiet
-git -C "$REPO_ROOT" push origin main --quiet
+if ! git -C "$REPO_ROOT" push origin main --quiet; then
+  git -C "$REPO_ROOT" reset --hard HEAD~1
+  die "Push failed. Task $ID has NOT been cancelled. Fix the push issue and retry."
+fi
 ok "$ID cancelled (parked in tasks/cancelled/)"
 
 refresh_index

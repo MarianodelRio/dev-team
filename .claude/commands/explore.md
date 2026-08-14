@@ -37,7 +37,8 @@ Does the question involve:
 ## Step 3 — Launch sub-agents if applicable
 
 Architect (if it involves architecture):
-- Input: the question + relevant modules + design.md + context/
+- Read the relevant `context/decisions/T-XXX.md` files and pass their content as inline text — not as a file path
+- Input: the question + relevant modules + design.md + the inlined content of relevant context/decisions/ files
 - Expected output: architectural impact analysis, affected contracts, DAG risks
 
 Advisor (if there are decision trade-offs):
@@ -79,6 +80,17 @@ Risk: ...
 - Does this generate a new task? → run /add-task
 - Is this informational only? → nothing to do
 ```
+
+---
+
+## Step 5 — Offer to save findings
+
+After presenting the report, ask:
+```
+Save findings to docs/explorations/[TOPIC-SLUG].md? (y/N)
+```
+
+If the user agrees, write the file with a date header and the full findings from Step 4.
 
 ---
 

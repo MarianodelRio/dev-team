@@ -21,27 +21,49 @@ Extract config values once here and carry them as variables through all phases:
 source scripts/dt-common.sh
 CFG_PR_MODE=$(dt_config workflow.pr_mode automatic)
 CFG_HUMAN_CHECKPOINT=$(dt_config workflow.human_checkpoint before_code)
-CFG_MAX_BLOCKER_RETRIES=$(dt_config orchestration.max_blocker_retries 3)
+CFG_MAX_BLOCKER_RETRIES=$(dt_config orchestration.max_blocker_retries 2)
+CFG_MAX_PARALLEL_TASKS=$(dt_config orchestration.max_parallel_tasks 5)
 CFG_REQUIRE_MUTATION_TESTS=$(dt_config quality.require_mutation_tests false)
 CFG_CRITICAL_MODULES=$(dt_config quality.critical_modules "[]")
-CFG_MUTATION_SCORE_THRESHOLD=$(dt_config quality.mutation_score_threshold 60)
+CFG_MUTATION_SCORE_THRESHOLD=$(dt_config quality.mutation_score_threshold 80)
 CFG_SMOKE_TEST_MODE=$(dt_config quality.smoke_test_mode sandbox)
 CFG_PROJECT_TYPE=$(dt_config project.type unknown)
+CFG_PROJECT_STACK=$(dt_config project.stack "unknown")
+CFG_REVIEW_PROFILE=$(dt_config review.review_profile "standard")
 CFG_CMD_TEST=$(dt_config commands.test "")
 CFG_CMD_LINT=$(dt_config commands.lint "")
 CFG_CMD_TYPE_CHECK=$(dt_config commands.type_check "")
 ```
 
+Check parallel task cap before selecting or claiming any task:
+```bash
+IN_PROGRESS_COUNT=$(find tasks/in-progress -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$IN_PROGRESS_COUNT" -ge "$CFG_MAX_PARALLEL_TASKS" ]]; then
+  echo "Max parallel tasks reached ($CFG_MAX_PARALLEL_TASKS in-progress). Wait for a task to complete."
+  exit 0
+fi
+```
+
 Read `.dt-index.json` for all task-selection decisions below (`git fetch` was already done above; `--no-fetch` skips a redundant network round-trip).
 
 **If a task ID is provided:**
+
+Validate task existence before any other check:
+```bash
+TASK_FILE=$(find tasks/ -name "${TASK_ID}.md" 2>/dev/null | head -1)
+[[ -z "$TASK_FILE" ]] && { echo "ERROR: Task $TASK_ID not found in tasks/"; exit 1; }
+```
+
 - Look up `tasks["T-XXX"]` in the index. If the key is absent, fall back to `find tasks/ -name "T-XXX-*.md"` and report its location and status, then stop.
 - If `folder != "available"`: report "T-XXX is currently [folder] — not available." and stop.
 - If `claimed_remote == true`: warn "T-XXX has a remote branch — it may be claimed by another agent. Run /restart T-XXX if it looks stuck." Stop unless the user explicitly overrides.
 - Proceed with that task.
 
 **If no task ID is provided:**
-- Read `summary.critical_path_next`. If non-empty and `tasks[critical_path_next].claimed_remote == false`: select that task.
+- Read `summary.critical_path_next`:
+  1. If non-empty and `tasks[critical_path_next].claimed_remote == false`: select that task.
+  2. If non-empty but `tasks[critical_path_next].claimed_remote == true` (already claimed by another agent): fall back — pick the highest-priority unclaimed task in `tasks/available/` (lowest task ID number among tasks where `claimed_remote == false`).
+  3. If all available tasks are claimed: report "no unclaimed tasks available — all available tasks are in flight" and stop.
 - If `critical_path_next` is `""` (no unclaimed available task exists):
   - `summary.in_progress > 0`: those tasks are in flight — list them and suggest /status.
   - `summary.available == 0` and `summary.blocked > 0`: all remaining tasks are blocked — list what they are waiting for.
@@ -70,7 +92,7 @@ Launch the Architect as a sub-agent with:
 - `architect_slice` from context_packet
 - `spec_sections` from context_packet
 - `plan.md`
-- Relevant decisions: read `context/decisions/T-YYY.md` for each task in `tasks/done/` and `tasks/in-progress/` whose `folders:` overlap with the current task's `folders:`
+- Relevant decisions: read `context/decisions/T-YYY.md` for each task in `tasks/done/` whose `folders:` overlap with the current task's `folders:`. For in-progress tasks, do NOT read their `context/decisions/` files from main — those files only exist on their feature branches and are not yet in main. For in-progress tasks, read the task file itself for context.
 - Open discoveries: read all `context/discoveries/T-YYY.md` files that exist across done and in-progress tasks; include only entries with `Status: open` (discoveries are cross-module alerts — do not filter by folder)
 - List of tasks in `tasks/done/` (what was implemented since this task was planned)
 - List of tasks in `tasks/in-progress/` (what is running in parallel)
@@ -152,6 +174,8 @@ Wait for result. The Planner returns the structured plan.
 
 If the Planner reports an unresolved question it cannot decide: the Orchestrator decides or escalates to the user depending on type.
 
+Before proceeding to Phase 3, cross-reference every item in the task's **Delivers:** list against the plan sections. List any missing deliverables explicitly for the user to review at the checkpoint. Do not proceed if any deliverable is unaccounted for in the plan without user acknowledgement.
+
 ---
 
 ## PHASE 3 — Coding (Coder sub-agent)
@@ -173,6 +197,11 @@ Launch the Coder as a background sub-agent with:
 - Do not read `devteam.config.yml` yourself — use only the config values provided above
 
 The Coder works exclusively in the worktree. The Orchestrator waits for its result.
+
+If the Coder agent exits with failure or produces an unrecoverable error:
+1. Run `git worktree remove --force $WORKTREE_PATH` to clean up the worktree.
+2. Run `bash scripts/dt-claim.sh --release $TASK_ID` (or equivalent) to reset the task status back to available.
+Do not leave orphaned worktrees; always clean up on Coder failure before exiting.
 
 If the Coder returns a BLOCKER:
 - Pure code blocker (no design decision): the Orchestrator resolves it and uses SendMessage to resume the Coder
@@ -210,22 +239,28 @@ Full verification before launching reviewers:
 ```bash
 bash scripts/dt-verify.sh --worktree ../[project]-T-XXX
 ```
-If it fails: SendMessage to the Coder with the specific error → Coder fixes → verify again.
+If it fails: spawn a new Coder agent passing the verify error as explicit input context. Do not use SendMessage — the original Coder session has ended. The new Coder agent fixes the issue → verify again.
 
 Determine whether the diff touches protected files or shared contracts (use the Architect's Phase 1 output — `### Protected files` and `### Affected contracts`).
 
+Capture the PR diff for the review-coordinator:
+```bash
+PR_DIFF=$(cd ../[project]-T-XXX && git diff origin/main)
+```
+
 Launch the `review-coordinator` sub-agent with:
-- `diff` — output of `git diff origin/main` from the feature branch worktree
+- `pr_diff` — `$PR_DIFF` captured above
 - `task_file` — full task file
-- `context_slice` — the relevant decisions and spec sections assembled during Phase 1
-- `code_quality_slice` from context_packet
+- `decisions_context` — the relevant decisions and spec sections assembled during Phase 1
+- `code_quality_slice` from context_packet (Module list/DAG + Testing strategy + Documentation plan)
 - `config`:
   - `project_type`: CFG_PROJECT_TYPE
+  - `project_stack`: CFG_PROJECT_STACK
   - `smoke_test_mode`: CFG_SMOKE_TEST_MODE
   - `require_mutation_tests`: CFG_REQUIRE_MUTATION_TESTS
   - `critical_modules`: CFG_CRITICAL_MODULES
   - `mutation_score_threshold`: CFG_MUTATION_SCORE_THRESHOLD
-- `review_profile` — value of `quality.review_profile` from `devteam.config.yml`
+- `review_profile`: CFG_REVIEW_PROFILE
 - `touches_protected` — `true` if Phase 1 Architect reported protected files or contract changes; `false` otherwise
 - Do not read `devteam.config.yml` yourself — use only the config values provided above
 
@@ -239,14 +274,16 @@ apply the lower limit.
 
 | Blocker type | Actor | Max retries | After retries exhausted |
 |---|---|---|---|
-| Code bug, wrong type, missing test, bad assertion | Coder via SendMessage | 2 | Escalate to user (structured message) |
-| Security issue (hardcoded secret, SQL injection, etc.) | Coder via SendMessage | 1 | If design problem → user; else escalate |
-| Architecture violation (DAG import, business logic in HTTP layer) | Coder via SendMessage after Architect review | 1 | User |
-| Smoke test: app fails to start | Coder via SendMessage | 2 | User |
+| Code bug, wrong type, missing test, bad assertion | Spawn new Coder agent with review findings as input | 2 | Escalate to user (structured message) |
+| Security issue (hardcoded secret, SQL injection, etc.) | Spawn new Coder agent with review findings as input | 1 | If design problem → user; else escalate |
+| Architecture violation (DAG import, business logic in HTTP layer) | Spawn new Coder agent after Architect review | 1 | User |
+| Smoke test: app fails to start | Spawn new Coder agent with review findings as input | 2 | User |
 | Smoke test: missing fixture, env var, or test setup issue | Orchestrator fixes directly (fixture or env), then re-run | 1 | User |
-| Mutation score below threshold on non-critical module | Coder adds assertions via SendMessage | 1 | Accept if score ≥60% with WARNING; block if critical module |
+| Mutation score below threshold on non-critical module | Spawn new Coder agent to add assertions | 1 | Accept if score ≥$CFG_MUTATION_SCORE_THRESHOLD with WARNING; block if critical module |
 | Design conflict in rebase | User — present immediately, do not attempt auto-resolve | 0 | — |
 | Shared contract change needed | Architect sub-agent + user | 0 | — |
+
+**Note on spawning a new Coder agent:** If the review requires fixes, spawn a new Coder agent passing the review findings as explicit input context. Do not use SendMessage — the original Coder session has ended.
 
 When retries are exhausted, present this structure to the user:
 
@@ -262,12 +299,13 @@ What was tried:
   Attempt 2: [what the Coder changed and why it wasn't enough]
 
 Options:
-  A) Give me specific direction and I'll send it to the Coder for one more attempt
-  B) Open the PR with this blocker flagged as a WARNING (not recommended for BLOCKER type)
-  C) Abandon this task — run /cancel T-XXX and create a new one with clearer scope
+  A) Give me specific direction and I'll spawn a new Coder agent for one more attempt
+  B) Abandon this task — the Orchestrator will run cleanup automatically
 ```
 
-Wait for user response. Apply direction and retry once more if option A chosen.
+Wait for user response.
+- If option A chosen: spawn a new Coder agent with the specific direction plus all prior review findings as explicit input context. Apply fix and re-run verification.
+- If option B chosen: run `bash scripts/dt-cancel.sh $TASK_ID --reason "abandoned at checkpoint"` and exit.
 
 WARNING without any blocker: open PR with warnings prominently flagged in the PR body.
 CLEAN from all reviewers: proceed to open PR.
@@ -291,6 +329,8 @@ Open the PR?
 Wait for explicit confirmation. If the user requests changes: apply and re-launch the `review-coordinator` before proceeding.
 If `before_code` (default): skip this checkpoint and proceed immediately.
 
+> **Checkpoint timeout:** If no user response is received within `$(dt_config orchestration.checkpoint_timeout_minutes 30)` minutes, default to Option B (abandon) and run `bash scripts/dt-cancel.sh $TASK_ID --reason "checkpoint timeout"` before exiting.
+
 **Final sync before opening PR:**
 
 Merges to main may have landed during the review phase. Rebase one last time:
@@ -309,7 +349,7 @@ After a clean rebase, run a quick verify to confirm nothing broke with the new c
 bash scripts/dt-verify.sh --worktree ../[project]-T-XXX
 ```
 
-If verify fails: treat as a last-minute blocker — send to the Coder via SendMessage with budget 1, then escalate to the user if still failing. Do not open the PR until clean.
+If verify fails: treat as a last-minute blocker — spawn a new Coder agent passing the verify error as explicit input context with budget 1 retry. Do not use SendMessage — the original Coder session has ended. Escalate to the user if still failing. Do not open the PR until clean.
 
 **Open PR:**
 Use `CFG_PR_MODE`:

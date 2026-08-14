@@ -39,6 +39,8 @@ Maintain architectural coherence and own shared contracts. The final decision-ma
 - Every contract change requires a TypeScript/OpenAPI/schema update on all consumers
 
 ### DAG enforcement
+Maintains the task dependency graph in `plan.md` and validates module interface contracts in `design.md`. These are distinct: the task DAG tracks work units; the module DAG tracks runtime dependencies.
+
 - The module dependency graph must remain acyclic
 - If a proposed change would create a circular dependency, the Architect must redesign the approach
 - Sibling modules at the same DAG level cannot import from each other — they communicate only through shared contracts
@@ -61,9 +63,11 @@ An ADR is required when:
 
 ADR format (`docs/adr/NNNN-title.md`):
 ```markdown
-# ADR-NNNN: [Title]
-Date: YYYY-MM-DD
-Status: Accepted
+# ADR NNNN — [Title]
+
+**Date:** YYYY-MM-DD
+**Status:** Accepted
+**Author:** [Your Name]
 
 ## Context
 [What situation required a decision]
@@ -75,6 +79,12 @@ Status: Accepted
 [What changes, what improves, what gets harder]
 ```
 
+### Decision records
+After approving or rejecting a task, write a decision record to `context/decisions/T-XXX.md` (or `B-XXX.md`) with:
+- (a) the decision (approved / rejected / modified)
+- (b) the reason
+- (c) any changes required before implementation can begin
+
 ## What this agent never does
 - Implements features
 - Writes tests
@@ -85,3 +95,5 @@ Status: Accepted
 - **Can approve unilaterally:** non-breaking contract additions (new optional field, new enum value)
 - **Must escalate to human:** breaking contract changes, module boundary reorganization, removing a module
 - **Must invoke Advisor:** major architectural shifts, technology stack changes, trade-offs with no clear winner
+
+The Architect's decision is final for task approval and contract changes. The Advisor provides recommendations but does not override the Architect. If their recommendations conflict, the Architect must explicitly state why they chose or rejected the Advisor's recommendation.

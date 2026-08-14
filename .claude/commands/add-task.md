@@ -21,8 +21,8 @@ Read:
 - `.dt-index.json` — the current tasks, their IDs, and the dependency graph (to pick the next free ID and check for overlap)
 
 Determine:
-- Next available task ID (T-XXX + 1 from the highest existing ID)
-- Which phase this belongs to
+- Next available task ID (T-XXX + 1 from the highest existing ID across **all** task folders, including `tasks/cancelled/` — to avoid ID collisions with cancelled tasks)
+- Which phase this belongs to (determined by the task's dependencies: the task belongs to the phase AFTER the highest phase of its dependencies; if no dependencies, default to phase 1 — always confirm the phase with the user rather than silently defaulting to the current project phase)
 - Which agent should own it (based on folder ownership in `design.md`)
 - Likely dependencies (which existing tasks must be done first)
 - Whether the new task changes a module's behavior beyond what spec.md defines (if so, flag it)
@@ -87,8 +87,8 @@ Wait for approval. Iterate if needed.
 ## Step 4 — Validate against DAG
 
 Before creating the file, verify:
-- No circular dependencies (T-XXX cannot depend on a task that depends on T-XXX)
-- All listed `depends_on` tasks actually exist
+- All listed `depends_on` IDs exist across all task folders (available, blocked, in-progress, pr-open, done, cancelled). Warn the user if any ID is unknown — do not proceed with unresolved dependencies.
+- No circular dependencies — perform a DFS check on the full dependency graph. T-XXX cannot depend on a task that (directly or transitively) depends on T-XXX.
 - The assigned agent owns the listed folders
 
 If there's a problem, explain it and propose a fix.
@@ -130,8 +130,10 @@ pr: ~
 - [ ] [primary doc from the Documentation plan] updated (if it adds a public surface)
 ```
 
+After creating the task file, update `plan.md` to include the new task and its `depends_on` relationships in the phases and dependency graph.
+
 ```bash
-git add tasks/[folder]/T-XXX-[slug].md
+git add tasks/[folder]/T-XXX-[slug].md plan.md
 git commit -m "chore(T-XXX): add task — [short title]"
 git push origin main
 ```

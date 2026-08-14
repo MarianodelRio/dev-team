@@ -36,9 +36,20 @@ fi
 sync_main
 
 # 1) Atomic lock — create the remote branch without switching the checkout.
-if ! git -C "$REPO_ROOT" push origin "main:refs/heads/$BRANCH" --quiet 2>/dev/null; then
-  die "$ID already claimed (branch push lost the race) — pick another task"
+_CLAIM_ERR_TMP="$(mktemp)"
+if ! git -C "$REPO_ROOT" push origin "main:refs/heads/$BRANCH" --quiet 2>"$_CLAIM_ERR_TMP"; then
+  if grep -q "already exists" "$_CLAIM_ERR_TMP" 2>/dev/null; then
+    rm -f "$_CLAIM_ERR_TMP"
+    echo "CLAIM_RESULT=already_claimed"
+    die "$ID already claimed (branch push lost the race) — pick another task"
+  else
+    cat "$_CLAIM_ERR_TMP" >&2
+    rm -f "$_CLAIM_ERR_TMP"
+    echo "CLAIM_RESULT=error"
+    exit 1
+  fi
 fi
+rm -f "$_CLAIM_ERR_TMP"
 ok "claimed lock branch origin/$BRANCH"
 
 # 2) Worktree tracking the new branch.
@@ -52,7 +63,9 @@ set_task_field "$FILE" branch "$BRANCH"
 mkdir -p "$REPO_ROOT/tasks/in-progress"
 mv "$FILE" "$NEWFILE"
 git -C "$REPO_ROOT" add "$FILE" "$NEWFILE"
-git -C "$REPO_ROOT" commit -m "chore($ID): claim [IN_PROGRESS]" --quiet
+_SESS_LABEL=""
+[ -n "${CLAUDE_SESSION_ID:-}" ] && _SESS_LABEL=" [session: ${CLAUDE_SESSION_ID}]"
+git -C "$REPO_ROOT" commit -m "chore($ID): claim [IN_PROGRESS]${_SESS_LABEL}" --quiet
 git -C "$REPO_ROOT" push origin main --quiet
 ok "$ID marked in-progress on main"
 
