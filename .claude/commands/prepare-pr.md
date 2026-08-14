@@ -65,13 +65,14 @@ If anything fails: report the specific error and stop. Do not fix behavioral fai
 
 ```bash
 source scripts/dt-common.sh
-CFG_REVIEW_PROFILE=$(dt_config quality.review_profile)
-CFG_PR_MODE=$(dt_config workflow.pr_mode)
-CFG_REQUIRE_MUTATION_TESTS=$(dt_config quality.require_mutation_tests)
-CFG_CRITICAL_MODULES=$(dt_config quality.critical_modules)
-CFG_MUTATION_SCORE_THRESHOLD=$(dt_config quality.mutation_score_threshold)
-CFG_SMOKE_TEST_MODE=$(dt_config quality.smoke_test_mode)
-CFG_PROJECT_TYPE=$(dt_config project.type)
+CFG_REVIEW_PROFILE=$(dt_config review.review_profile "standard")
+CFG_PR_MODE=$(dt_config pr.mode "auto")
+CFG_BASE_BRANCH=$(dt_config git.base_branch "main")
+CFG_REQUIRE_MUTATION_TESTS=$(dt_config quality.require_mutation_tests "false")
+CFG_CRITICAL_MODULES=$(dt_config quality.critical_modules "")
+CFG_MUTATION_SCORE_THRESHOLD=$(dt_config quality.mutation_score_threshold "80")
+CFG_SMOKE_TEST_MODE=$(dt_config quality.smoke_test_mode "docker")
+CFG_PROJECT_TYPE=$(dt_config project.type "")
 ```
 
 ---

@@ -8,7 +8,13 @@ model: claude-sonnet-4-6
 Review the PR diff for correctness, architecture compliance, and code quality.
 
 ## When to invoke
-Invoked by the Orchestrator in Phase 4.
+Invoked by the review-coordinator as part of Phase 4 of /orchestrate.
+
+## Inputs
+Receives from the review-coordinator:
+- `diff` — full PR diff
+- `task_file` — full task file
+- `code_quality_slice` — relevant decisions and spec sections (Module DAG, Testing strategy, Documentation plan); may be empty in escape-hatch mode
 
 ## What this agent checks
 

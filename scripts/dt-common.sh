@@ -34,18 +34,19 @@ die()  { err "$*"; exit 1; }
 # safe to interpolate into paths and branch names.
 validate_id() {
   local id="$1"
-  [[ "$id" =~ ^[TB]-[0-9]+$ ]] || die "invalid id '$id' (expected T-NNN or B-NNN)"
+  [[ "$id" =~ ^[TB]-[0-9]{3}$ ]] || die "invalid id '$id' (expected T-NNN or B-NNN)"
 }
 
 # ── Config reader (flat, two-level YAML) ─────────────────────────────────────
-# Usage: dt_config section.key   e.g. dt_config workflow.cleanup_merged_branches
+# Usage: dt_config section.key [default]   e.g. dt_config workflow.cleanup_merged_branches true
 # Returns the value with surrounding quotes and inline comments stripped.
+# If the key is absent or null/~, returns the default (second argument, default "").
 dt_config() {
-  local path="$1" section key
+  local path="$1" default="${2:-}" section key value
   section="${path%%.*}"
   key="${path#*.}"
-  [ -f "$DT_CONFIG" ] || { echo ""; return 0; }
-  awk -v s="$section" -v k="$key" '
+  [ -f "$DT_CONFIG" ] || { echo "$default"; return 0; }
+  value=$(awk -v s="$section" -v k="$key" '
     $0 ~ "^"s":"            { inb=1; next }
     inb && /^[^[:space:]#]/ { inb=0 }
     inb && $0 ~ "^[[:space:]]+"k":" {
@@ -58,7 +59,12 @@ dt_config() {
       print line
       exit
     }
-  ' "$DT_CONFIG"
+  ' "$DT_CONFIG")
+  if [[ -z "$value" || "$value" == "null" || "$value" == "~" ]]; then
+    echo "$default"
+  else
+    echo "$value"
+  fi
 }
 
 # Project name → drives worktree path `../<name>-<ID>`. Falls back to repo dir name.
@@ -71,15 +77,23 @@ dt_project_name() {
 dt_worktree_path() { echo "$REPO_ROOT/../$(dt_project_name)-$1"; }
 
 # ── Task file discovery ──────────────────────────────────────────────────────
-TASK_FOLDERS="available in-progress ready-for-pr pr-open done blocked cancelled"
+TASK_FOLDERS=(
+  "available"
+  "in-progress"
+  "ready-for-pr"
+  "pr-open"
+  "done"
+  "blocked"
+  "cancelled"
+)
 
 # Echo the path of the single task file for ID, optionally restricted to a folder.
 find_task_file() {
   local id="$1" only="${2:-}"
   local f
-  for folder in $TASK_FOLDERS; do
+  for folder in "${TASK_FOLDERS[@]}"; do
     [ -n "$only" ] && [ "$folder" != "$only" ] && continue
-    for f in "$REPO_ROOT/tasks/$folder/${id}-"*.md; do
+    for f in "$REPO_ROOT/tasks/$folder/${id}-"*.md "$REPO_ROOT/tasks/$folder/${id}.md"; do
       [ -e "$f" ] && { echo "$f"; return 0; }
     done
   done
@@ -87,6 +101,7 @@ find_task_file() {
 }
 
 # Read a frontmatter scalar field from a task file (e.g. status, branch, agent).
+# Strips surrounding YAML quotes (" and ') and treats ~ as empty/null.
 task_field() {
   local file="$1" field="$2"
   awk -v f="$field" '
@@ -94,6 +109,9 @@ task_field() {
     inf && $0=="---"   { exit }
     inf && $0 ~ "^"f":" {
       line=$0; sub("^"f":[[:space:]]*","",line); sub(/[[:space:]]+$/,"",line)
+      gsub(/^"|"$/, "", line)
+      gsub(/^'"'"'|'"'"'$/, "", line)
+      if (line == "~") line = ""
       print line; exit
     }
   ' "$file"
@@ -108,12 +126,14 @@ task_depends_on() {
 }
 
 # Set a frontmatter scalar field in place (portable sed).
+# If the field is missing from the frontmatter, inserts it before the closing ---.
 set_task_field() {
   local file="$1" field="$2" value="$3"
   # Only touch the first occurrence inside frontmatter.
+  # If the field is missing, insert it before the closing ---.
   awk -v f="$field" -v v="$value" '
     NR==1 && $0=="---" { print; inf=1; next }
-    inf && $0=="---"   { inf=0; print; next }
+    inf && $0=="---"   { if (!done) { print f": "v; done=1 } inf=0; print; next }
     inf && !done && $0 ~ "^"f":" { print f": "v; done=1; next }
     { print }
   ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
@@ -130,8 +150,10 @@ task_branch_from_file() {
   case "$id" in B-*) echo "fix/$base" ;; *) echo "feature/$base" ;; esac
 }
 
-# True if a task id currently lives in tasks/done/.
-is_done() { find_task_file "$1" done >/dev/null 2>&1; }
+# True if a task id currently lives in tasks/done/ or tasks/cancelled/.
+is_done() {
+  find_task_file "$1" done >/dev/null 2>&1 || find_task_file "$1" cancelled >/dev/null 2>&1
+}
 
 # ── Remote branch checks ─────────────────────────────────────────────────────
 remote_branch_exists() {
@@ -146,9 +168,34 @@ refresh_index() {
   fi
 }
 
+# ── Task validation helpers ──────────────────────────────────────────────────
+
+# Warn if depends_on is not a YAML array ([T-001, T-002]).
+validate_depends_on() {
+  local file="$1"
+  local raw
+  raw="$(task_field "$file" depends_on)"
+  if [[ -n "$raw" ]] && [[ ! "$raw" =~ ^\[.*\]$ ]]; then
+    echo "WARNING: depends_on in $(basename "$file") is not a YAML array. Expected format: [T-001, T-002]" >&2
+  fi
+}
+
+# Warn if the task body (below frontmatter) exceeds 150 words.
+validate_task_body() {
+  local file="$1"
+  local word_count
+  word_count=$(awk '
+    /^---$/ { if (++cnt == 2) { body=1; next } }
+    body    { print }
+  ' "$file" | wc -w)
+  if [[ "$word_count" -gt 150 ]]; then
+    echo "WARNING: Task body in $(basename "$file") has $word_count words (max recommended: 150)" >&2
+  fi
+}
+
 # ── main sync helper ─────────────────────────────────────────────────────────
 sync_main() {
-  git -C "$REPO_ROOT" checkout main >/dev/null 2>&1
-  git -C "$REPO_ROOT" pull origin main --ff-only >/dev/null 2>&1 \
-    || die "main is not fast-forward — resolve divergence manually before continuing"
+  git -C "$REPO_ROOT" checkout main || { echo "ERROR: Could not checkout main"; exit 1; }
+  git -C "$REPO_ROOT" pull origin main --ff-only \
+    || { echo "ERROR: Could not pull main — resolve divergence manually before continuing"; exit 1; }
 }

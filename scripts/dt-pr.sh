@@ -77,9 +77,20 @@ if [ "$DRY" -eq 1 ]; then
   exit 0
 fi
 
+# ISS-057: Sync main BEFORE creating the PR; if sync fails, abort without creating a PR.
+sync_main
+# ISS-107: Read base branch from config instead of hardcoding "main".
+BASE_BRANCH=$(dt_config git.base_branch "main")
+
 # ── Create or accept the PR ──────────────────────────────────────────────────
 if [ -n "$BODY_FILE" ]; then
   command -v gh >/dev/null 2>&1 || die "gh CLI not found — install and authenticate with 'gh auth login'"
+  # ISS-002: Check if a PR already exists for this branch before creating.
+  EXISTING_PR=$(gh pr list --head "$BRANCH" --json url -q '.[0].url' 2>/dev/null)
+  if [[ -n "$EXISTING_PR" ]]; then
+    echo "PR already exists: $EXISTING_PR"
+    exit 0
+  fi
   log "creating PR for $ID (branch: $BRANCH)..."
   PR_URL="$(
     git -C "$REPO_ROOT" fetch origin --quiet 2>/dev/null || true
@@ -87,7 +98,7 @@ if [ -n "$BODY_FILE" ]; then
       --title "$TITLE" \
       --body-file "$BODY_FILE" \
       --head "$BRANCH" \
-      --base main \
+      --base "$BASE_BRANCH" \
       --repo "$(git -C "$REPO_ROOT" remote get-url origin | sed 's/.*github\.com[:/]//; s/\.git$//')"
   )"
   [ -n "$PR_URL" ] || die "gh pr create returned no URL — check 'gh auth status'"
@@ -97,7 +108,6 @@ PR_NUMBER="$(echo "$PR_URL" | grep -oE '[0-9]+$')"
 ok "PR: #$PR_NUMBER — $PR_URL"
 
 # ── Update task and push to main ─────────────────────────────────────────────
-sync_main
 
 set_task_field "$FILE" status pr-open
 set_task_field "$FILE" pr "$PR_URL"

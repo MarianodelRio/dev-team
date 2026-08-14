@@ -1,82 +1,134 @@
 # Contributing to dev-team
 
-Thank you for your interest in contributing to dev-team. This document explains how to get involved.
+Thank you for contributing to dev-team. This guide covers the conventions and workflows for modifying the framework itself.
 
-## Code of Conduct
+---
 
-Be respectful and constructive. We welcome contributors regardless of experience level, background, or perspective. Harassment of any kind is not tolerated.
+## Naming conventions
 
-## How to contribute
+- **Script names:** `dt-[verb].sh` — e.g. `dt-claim.sh`, `dt-done.sh`, `dt-verify.sh`
+- **Agent names:** lowercase, hyphen-separated — e.g. `review-coordinator`, `code-quality`, `smoke-tester`
+- **Task IDs:** `T-NNN` for feature tasks, `B-NNN` for bug tasks (three-digit zero-padded)
+- **Branch names:** `feature/T-NNN-short-slug` or `fix/B-NNN-short-slug`
 
-### Reporting bugs
+### Reserved agent names
 
-Open an issue with:
-- A clear title
-- Steps to reproduce
-- What you expected vs. what happened
-- Your OS, shell, and Claude Code version
+The following names are reserved for framework agents and must not be used for project-generated agents:
 
-### Suggesting features
-
-Open an issue tagged `enhancement`. Describe the problem you're solving, not just the solution.
-
-### Submitting a pull request
-
-1. Fork the repository and create a branch from `main`:
-   ```
-   git checkout -b feat/your-feature-name
-   ```
-
-2. Make your changes. Keep PRs focused — one concern per PR.
-
-3. If you add or change a command (`.claude/commands/`), update `CLAUDE.md`, `README.md`, and `docs/WORKFLOWS.md` to reflect it. If the command interacts with `spec.md`, update `spec.md`'s section in `CLAUDE.md` accordingly.
-
-4. If you add an agent (`.claude/agents/`), document its folder ownership, responsibilities, and which phase of the orchestration pipeline it belongs to.
-
-5. Open a PR against `main` with a clear description of:
-   - What the change does
-   - Why it is needed
-   - How to test it
-
-### Commit style
-
-**Human contributions to this repository** use conventional commits:
 ```
-feat: add /restart command to reset in-progress tasks
-fix: orchestrator picks blocked tasks when no available tasks exist
-docs: clarify branch policy in CLAUDE.md
-chore: update devteam.config.yml defaults
+orchestrator, architect, planner, coder, advisor,
+review-coordinator, code-quality, security, adversarial,
+smoke-tester, mutation-tester
 ```
 
-Note: the framework generates two different commit formats inside the projects that use dev-team — `T-XXX: description` for implementation commits (by the Orchestrator) and `chore(T-XXX): ...` for status transitions (by the dt-* scripts). Those are intentional framework conventions; this conventional-commits rule applies only to contributions to the dev-team repo itself.
+---
 
-### Agent roles
+## How to test framework changes
 
-Agents in dev-team have specific roles in the orchestration pipeline:
+### Commands (`.claude/commands/`)
 
-- **Coordinator**: the orchestrator — one per /orchestrate session
-- **Phase agents**: architect (phase 1), planner (phase 2), coder (phase 3)
-- **Shared resource**: advisor — any agent can invoke it
-- **Review agents**: code-quality, security, adversarial, smoke-tester, mutation-tester (phase 4)
+Commands are Markdown files that define prompts executed by Claude Code. To test a command change:
 
-When adding a new agent, define clearly which phase it belongs to, who invokes it,
-and what its output format is. Agents should never exceed their phase scope
-(e.g., a planner should not write production code).
+1. Make your edit to the relevant `.claude/commands/name.md` file.
+2. Open a Claude Code session in a test repository that has dev-team installed.
+3. Run `/name` and verify the behavior matches the updated spec.
+4. Test edge cases: missing files, unexpected task states, empty config values.
 
-## What we are looking for
+There is no automated test runner for commands — testing is conversational and observational.
 
-- New phase agents that fit the coordinator pattern (analyze → plan → code → review)
-- Improvements to existing agents within their defined role
-- Better defaults and timeout values in `devteam.config.yml`
-- Documentation fixes and clarifications
-- Examples: real projects built with dev-team as showcase
+### Agents (`.claude/agents/`)
 
-## What to avoid
+Agent definitions are Markdown files consumed by Claude Code when spawning sub-agents. To test an agent change:
 
-- Changes that add external service dependencies (the framework is intentionally git-only)
-- Features that require a database or dashboard
-- Large refactors without prior discussion in an issue
+1. Edit the relevant `.claude/agents/name.md`.
+2. Trigger the flow that invokes the agent (e.g. run `/orchestrate` to invoke the Architect, Planner, and Coder in sequence).
+3. Verify the agent behaves according to its updated instructions.
 
-## Questions
+When changing agent inputs or outputs, also check the calling command or agent (e.g. changing the Architect's output format requires updating `orchestrate.md` to match).
 
-Open a GitHub Discussion or an issue tagged `question`.
+### Scripts (`scripts/`)
+
+Scripts are Bash files that perform mechanical git/filesystem operations. To test a script change:
+
+1. Edit the relevant `scripts/dt-*.sh`.
+2. Run the script directly in a test repository:
+   ```bash
+   bash scripts/dt-claim.sh T-001
+   bash scripts/dt-done.sh T-001 https://github.com/org/repo/pull/42
+   ```
+3. Verify the output messages and filesystem/git state match expectations.
+4. Test failure paths: missing task file, wrong task state, network failure.
+
+All scripts use `set -e` and should produce clear error messages on failure. Use `bash -x` for step-by-step tracing during debugging.
+
+---
+
+## How to add a new command
+
+1. Create `.claude/commands/name.md` with the command prompt content.
+2. Register the command in the `## Available commands` table in `CLAUDE.md`.
+3. If the command is user-facing, add it to the commands list in `README.md`.
+4. If the command requires a new skill entry, add it to `.claude/settings.json` under `skills`.
+
+Command files follow this structure:
+
+```markdown
+# /command-name
+
+Brief description of what this command does.
+
+## When to use
+...
+
+## Steps
+1. ...
+2. ...
+```
+
+---
+
+## How to add a new agent
+
+1. Create `.claude/agents/name.md`. The filename must match the name used when spawning the agent.
+2. Do not use any name from the reserved list above.
+3. Document the agent's inputs, outputs, folder ownership, and decision rules clearly.
+4. If the agent is invoked by a command or another agent, update that file to reference the new agent name.
+5. If the agent needs specific tool permissions, update `.claude/settings.json`.
+
+Agent files follow this structure:
+
+```markdown
+---
+model: claude-sonnet-4-6   # or claude-opus-4-8 for reasoning-heavy agents
+tools: [Read, Edit, Bash]
+---
+
+# Agent Name
+
+Brief description.
+
+## Inputs
+...
+
+## Outputs
+...
+
+## Rules
+...
+```
+
+---
+
+## Making changes to shared contracts
+
+**Protected files** — `design.md`, `spec.md`, `plan.md`, and any file listed under `protected_files` in `devteam.config.yml` — require special care:
+
+- Never edit `spec.md` directly; use `/refine`.
+- Changes to shared contracts must be propagated to all consuming modules.
+- If a change affects in-progress tasks, write a discovery to `context/discoveries/T-XXX.md` for each affected task.
+
+---
+
+## Commit style
+
+Follow the existing commit style visible in `git log`. Keep commit messages concise and focused on intent, not mechanics. One logical change per commit.

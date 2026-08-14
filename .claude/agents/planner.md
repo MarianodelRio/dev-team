@@ -113,3 +113,4 @@ Output: options + trade-offs + concrete recommendation
 - If the plan would change module behavior beyond what spec.md describes, flag it to the Orchestrator — do not silently expand scope
 - Prefer the simpler of two equivalent approaches — complexity is a cost, not a feature
 - If the plan requires more than the acceptance criteria justify, cut it
+- Plans may be adjusted by the Coder without re-invoking the Planner. The Coder's `## Completed` section is authoritative for what was actually implemented.

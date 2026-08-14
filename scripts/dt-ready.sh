@@ -16,6 +16,7 @@ validate_id "$ID"
 
 FILE="$(find_task_file "$ID" in-progress)" || die "$ID is not in tasks/in-progress/"
 WT="$(dt_worktree_path "$ID")"
+BRANCH="$(task_branch_from_file "$FILE")"
 NEWFILE="$REPO_ROOT/tasks/ready-for-pr/$(basename "$FILE")"
 
 if [ "$DRY" -eq 1 ]; then
@@ -26,6 +27,11 @@ if [ "$DRY" -eq 1 ]; then
 fi
 
 if [ -e "$WT" ]; then
+  UNPUSHED=$(git -C "$WT" log "origin/${BRANCH}..HEAD" --oneline 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$UNPUSHED" -gt 0 ]]; then
+    echo "ERROR: $UNPUSHED unpushed commit(s) in worktree. Push first."
+    exit 1
+  fi
   git -C "$REPO_ROOT" worktree remove --force "$WT" 2>/dev/null \
     && ok "removed worktree $WT" \
     || log "could not remove worktree $WT (already gone?)"

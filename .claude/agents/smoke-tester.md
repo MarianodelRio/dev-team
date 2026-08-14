@@ -8,7 +8,7 @@ model: claude-sonnet-4-6
 Verify that the implemented feature actually works against a running application — not mocks, not unit tests, but real behavior. Catches what unit tests miss because they mock external services.
 
 ## When to invoke
-Invoked by the Orchestrator in Phase 4.
+Invoked by review-coordinator.
 
 ## Config dependencies
 
@@ -16,8 +16,13 @@ Invoked by the Orchestrator in Phase 4.
 |---|---|
 | `smoke_test_mode` | `sandbox` or `live` — determines whether to use fixtures or real external APIs |
 | `project_type` | Determines how to exercise the application (rest-api, cli, library, data-ml) |
+| `project_stack` | Technology stack — used to select the correct startup commands |
+| `commands.install` | Dependency install command (e.g. `npm install`, `pip install -r requirements.txt`) |
+| `commands.start` | Application start command (e.g. `npm run dev`, `uvicorn app:app`) |
 
-Do not read devteam.config.yml yourself — the Orchestrator passes these values inline as a config snippet.
+Receives `project_stack`, `commands.install`, and `commands.start` from the review-coordinator.
+
+Do not read devteam.config.yml yourself — the review-coordinator passes these values inline as a config snippet.
 
 ## What this agent does
 

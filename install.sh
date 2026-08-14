@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# dev-team v1.1.0 — https://github.com/your-org/dev-team
 # install.sh — install dev-team into an existing project
 # Usage: bash install.sh [target-directory]
 # If no target directory is given, installs into the current directory.
@@ -6,7 +7,40 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# ── Pre-flight checks ──────────────────────────────────────────────────────
+
+if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
+  echo "ERROR: Bash 4.0+ is required. Your version: $BASH_VERSION"
+  echo "On macOS: brew install bash && echo '/usr/local/bin/bash' >> /etc/shells && chsh -s /usr/local/bin/bash"
+  exit 1
+fi
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  echo "Usage: bash install.sh"
+  echo "Sets up the dev-team framework in the current git repository."
+  echo "Requirements: Bash 4+, git, gh (GitHub CLI), claude (Claude Code)"
+  exit 0
+fi
+
 TARGET="${1:-$(pwd)}"
+
+if ! command -v gh &>/dev/null; then
+  echo "ERROR: GitHub CLI (gh) is required but not found."
+  echo "Install: https://cli.github.com/"
+  exit 1
+fi
+
+if ! command -v claude &>/dev/null; then
+  echo "ERROR: Claude Code CLI is required but not found."
+  echo "Install: https://claude.ai/code"
+  exit 1
+fi
+
+if ! git rev-parse --git-dir &>/dev/null; then
+  echo "ERROR: Not in a git repository. Run 'git init' first, then re-run install.sh"
+  exit 1
+fi
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -27,7 +61,7 @@ copy_if_missing() {
 # ── Validate ───────────────────────────────────────────────────────────────
 
 if [ ! -d "$TARGET" ]; then
-  echo "Error: target directory '$TARGET' does not exist." >&2
+  echo "ERROR: target directory '$TARGET' does not exist." >&2
   exit 1
 fi
 
@@ -47,13 +81,13 @@ trap cleanup EXIT
 if [ ! -d "$SCRIPT_DIR/.claude" ]; then
   info "No local checkout found — fetching dev-team from $REPO_URL"
   if ! command -v git >/dev/null 2>&1; then
-    echo "Error: git is required to install dev-team remotely." >&2
+    echo "ERROR: git is required to install dev-team remotely." >&2
     echo "Install git, or clone the repo and run 'bash install.sh' from its root." >&2
     exit 1
   fi
   CLONED_TMP="$(mktemp -d)"
   if ! git clone --depth 1 "$REPO_URL" "$CLONED_TMP" >/dev/null 2>&1; then
-    echo "Error: failed to clone $REPO_URL" >&2
+    echo "ERROR: failed to clone $REPO_URL" >&2
     exit 1
   fi
   SCRIPT_DIR="$CLONED_TMP"

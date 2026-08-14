@@ -70,13 +70,25 @@ Skip silently — do not block `/done` for projects without CI.
 
 ## Step 3 — Mark DONE, clean up, and unblock
 
-Run the done script. It syncs main, moves the file to `done/`, deletes the merged branch (if `cleanup_merged_branches: true`, silent when already gone), and moves every dependent whose dependencies are now all done from `blocked/` to `available/` — all committed and pushed to main:
+Before running the done script, identify all tasks in `tasks/blocked/` whose `depends_on` includes [ID]. For each candidate to unblock:
+- Verify that **every** ID in its `depends_on` list is in `tasks/done/` OR `tasks/cancelled/`. Only move to `tasks/available/` if ALL dependencies are satisfied — do not move a task that still has outstanding dependencies.
+- Perform a DFS cycle check on the dependency graph before moving any task to available. If a cycle is detected (e.g., T-A → T-B → T-A), report it and stop — do not proceed with unblocking until the cycle is resolved.
+
+Run the done script. It syncs main, moves the file to `done/`, deletes the merged branch (if `cleanup_merged_branches: true`, silent when already gone), and moves qualifying dependents from `blocked/` to `available/` — all committed and pushed to main:
 
 ```bash
 bash scripts/dt-done.sh [ID]
 ```
 
 Works for both `T-XXX` and `B-XXX`.
+
+After the script completes, clear the `branch:` field in the moved task file so it does not contain a stale branch name. Edit `tasks/done/[ID]-*.md` and set:
+
+```
+branch: ~
+```
+
+Then stage and commit this change to main alongside the done status update (or as a follow-up commit if the script already pushed).
 
 ---
 
@@ -99,6 +111,18 @@ Run /orchestrate to pick up the next task.
 ```
 
 If nothing was unblocked: "No new tasks unblocked."
+
+---
+
+## Step 5 — Check if architecture docs need updating
+
+Review the merged PR's changes. If any module interfaces, API contracts, or shared data models changed, prompt the user:
+
+```
+⚠️ The PR for [ID] may have changed module interfaces.
+If any output contracts changed (APIs, data models, shared types), run /refine
+to propagate the changes to spec.md and dependent tasks.
+```
 
 ---
 

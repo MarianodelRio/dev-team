@@ -29,8 +29,21 @@ Do **not** invoke for:
 - Test structure
 - Standard patterns well-established in the codebase
 
-## Output format
+## Input format
+Agents invoking the Advisor must provide:
+- **context**: Current task ID, relevant code snippets, and what was already tried
+- **question**: The specific decision to make (one clear question)
+- **options**: List of alternatives being considered (2–4 options)
+- **constraints**: Any fixed constraints the recommendation must respect
 
+## Output format
+The Advisor returns:
+- **recommendation**: Which option to choose
+- **rationale**: Why (2-3 sentences)
+- **risks**: Main risk of the recommended option
+- **alternative**: When to pick the second-best option instead
+
+Full response template:
 ```
 ## Question
 [The specific decision, restated clearly]

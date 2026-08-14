@@ -6,6 +6,26 @@ This is a **conversation**, not a one-shot command. You pause at each checkpoint
 
 ---
 
+## Pre-flight check — idempotency guard
+
+Before anything else, check if `design.md` exists in the working directory.
+
+If `design.md` exists, stop and show this message, then wait for input:
+
+```
+design.md already exists. This project has already been initialized.
+
+- To update requirements or add modules: run /refine
+- To add a new task without changing the spec: run /add-task
+- To wipe all generated files and start completely over: type RESET (destructive — cannot be undone)
+
+What would you like to do?
+```
+
+Only continue with bootstrap if the user types RESET. Otherwise, stop here.
+
+---
+
 ## Step 0 — Detect mode
 
 Analyze what files exist in the project:
@@ -64,7 +84,24 @@ Wait for response. Store level internally as A, B, or C.
 
 ### MODE 1 — Ideation
 
-Read `IDEA.md`. If it's empty or very sparse, run the ideation conversation.
+Check if `IDEA.md` exists. If it does not exist, create it with this template:
+
+```markdown
+# Project Idea
+
+<!-- Describe your project here — the problem it solves, who it's for, and what must work on day one. -->
+<!-- Be as vague or as specific as you want; aim for at least a sentence or two of real content. -->
+```
+
+Then tell the user:
+
+```
+IDEA.md didn't exist — I've created a template. Fill it in with a description of your project idea (at least a sentence or two), then re-run /bootstrap.
+```
+
+Stop here. Do not continue bootstrap until the user re-runs the command.
+
+If `IDEA.md` exists, read it. If it's empty or very sparse, run the ideation conversation.
 
 Ask (adapt language to expertise level):
 ```
@@ -85,7 +122,15 @@ Once ideation is complete, update `IDEA.md` with a clean summary of what was dis
 
 ### MODE 2 — Design
 
-Read `IDEA.md` and `devteam.config.yml`.
+Read `IDEA.md`. Count the non-whitespace words, excluding HTML comments (`<!-- ... -->`). If fewer than 20 non-whitespace words remain, stop and tell the user:
+
+```
+IDEA.md doesn't have enough content to generate an architecture. Please describe your project in at least a sentence or two, then re-run /bootstrap.
+```
+
+Stop here. Do not continue.
+
+Read `devteam.config.yml`.
 
 Ask the following questions adapted to the user's expertise level (A/B/C from Step 1).
 These drive architecture decisions in Mode 2 and go into design.md:
@@ -176,18 +221,20 @@ The **project type** drives the Testing strategy and the Documentation plan belo
 
 Wait for response. Iterate until approved.
 
-Once approved, generate `design.md` with:
-- Architecture overview
-- Module list with folder ownership
-- Shared contracts (data models, API schemas)
-- Tech stack
-- Key constraints and non-negotiables
-- **Non-functional requirements** — the scale, availability, latency, and data
-  sensitivity answers from the NFR conversation, plus their architectural
-  implications (e.g. "peak 500 req/s → stateless services behind load balancer",
-  "PII present → encryption at rest, no plaintext in logs")
-- **Testing strategy** (see below)
-- **Documentation plan** (see below)
+Once approved, generate `design.md` using these exact top-level section headings — `orchestrate.md` extracts slices by these names and agents receive empty context if they are missing or renamed:
+
+```markdown
+## Architecture
+## Module Contracts
+## Testing Strategy
+## Documentation Plan
+```
+
+Distribute the content across these sections:
+- **`## Architecture`** — architecture overview, stack, structure, module list with folder ownership, tech stack, key constraints and non-negotiables
+- **`## Module Contracts`** — shared contracts (data models, API schemas), plus the NFRs (the scale, availability, latency, and data sensitivity answers from the NFR conversation) and their architectural implications (e.g. "peak 500 req/s → stateless services behind load balancer", "PII present → encryption at rest, no plaintext in logs")
+- **`## Testing Strategy`** — see testing strategy section below
+- **`## Documentation Plan`** — see documentation plan section below
 
 ### Testing strategy (section in design.md)
 
@@ -287,7 +334,10 @@ Any business rules, edge cases, or failure modes missing?
 Wait for response. Iterate if needed. Once approved, write `spec.md`.
 
 Once approved (both plan and spec):
-1. Generate all `tasks/[status]/T-XXX-slug.md` files
+1. Create all seven task folders (each with a `.gitkeep` so they are tracked by git) before writing any task files:
+   `tasks/available/`, `tasks/blocked/`, `tasks/in-progress/`, `tasks/pr-open/`, `tasks/ready-for-pr/`, `tasks/done/`, `tasks/cancelled/`
+
+   Then generate all `tasks/[status]/T-XXX-slug.md` files:
    - `tasks/available/` for Phase 0 tasks with no dependencies
    - `tasks/blocked/` for all others
    - Each task's **Done when** checklist references the test types the Testing strategy assigns to that module, and the specific doc file from the Documentation plan (not a hardcoded `docs/api.md`)
@@ -322,15 +372,57 @@ Once approved (both plan and spec):
 
 Read `devteam.config.yml` and validate tasks/ structure.
 
-Generate specialized agents for this project's exact modules. For each major module:
+Generate specialized agents for this project's exact modules.
+
+Before creating any agent file, check the proposed name against the reserved framework agent list:
+`orchestrator`, `architect`, `planner`, `coder`, `advisor`, `review-coordinator`, `code-quality`, `security`, `adversarial`, `smoke-tester`, `mutation-tester`
+
+If any module or service name conflicts with a reserved name, ask the user to rename the module before continuing:
+
+```
+The module name "[name]" conflicts with a reserved framework agent name and cannot be used.
+Please choose a different name (e.g. "[name]-service", "app-[name]").
+```
+
+Wait for a non-conflicting name before creating that agent file.
+
+For each approved module name:
 - Create `.claude/agents/[module].md` with folder ownership, commands, and domain expertise
+
+**Agent name reconciliation:** After all agent files have been generated, scan every task file in `tasks/` and update the `agent:` field to match the actual generated agent file names. This corrects any mismatches that arose because tasks were drafted before agent names were finalized (or because a name was changed to avoid a reserved-name conflict).
 
 Generate `CLAUDE.md` customized for this project (replace generic content with project-specific architecture, module list, and rules).
 
 Copy `.claude/AGENTS.md` from the framework (this file is not project-specific — it contains the runtime formats and rules injected into every agent session; do not rewrite it, just ensure it is present in `.claude/AGENTS.md`).
 
+Create the context directories required by all agents and scripts:
+```bash
+mkdir -p context/decisions context/discoveries
+touch context/decisions/.gitkeep context/discoveries/.gitkeep
+```
+
+Add (or append) the following entries to `.gitignore` to prevent temporary framework files from being committed accidentally:
+```
+# dev-team framework temp files
+.dt-index.json
+.dt-index.json.tmp
+.dt-claim-*
+```
+
 Generate the test structure and documentation from `design.md`:
 - If `batteries.test_scaffold: true` → create `tests/` and `tests/fixtures/` following the layout in the Testing strategy, with a `tests/README.md` explaining the structure and how to run each test type
+- Always generate `tests/fixtures/smoke_test.sh` with a basic template (the smoke-tester agent executes this during Phase 4 review). Make the file executable:
+  ```bash
+  #!/usr/bin/env bash
+  # smoke_test.sh — generated by /bootstrap. Edit to add project-specific startup and checks.
+  set -euo pipefail
+  echo "=== Smoke test starting ==="
+  # TODO: start the application
+  # TODO: wait for readiness (e.g. poll a health endpoint)
+  # TODO: run a minimal validation (e.g. curl -f http://localhost:PORT/health)
+  # TODO: shut down on exit
+  echo "=== Smoke test passed ==="
+  ```
 - Create the **primary doc file** named in the Documentation plan (e.g. `docs/api.md`, `docs/cli.md`, `docs/usage.md`, `docs/pipeline.md`) with a skeleton appropriate to the project type — do not assume `docs/api.md` for non-API projects
 - Ensure `quality.critical_modules` in `devteam.config.yml` matches the critical modules listed in the Testing strategy
 
@@ -365,10 +457,16 @@ Generated:
 ✓ CLAUDE.md (project-specific)
 ✓ .claude/AGENTS.md (agent runtime reference)
 ✓ .claude/agents/ (X specialized agents)
+✓ tests/fixtures/smoke_test.sh (smoke test template — edit to add project-specific startup steps)
+✓ context/decisions/ and context/discoveries/ (agent context directories)
 ✓ [list of batteries generated]
 
 Critical path: T-001 → T-002 → ...
 First available task: T-001 — [title]
+
+Scaling note: The framework runs up to 5 sub-agents concurrently by default. To increase this limit,
+set the CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS environment variable and update
+orchestration.max_parallel_tasks in devteam.config.yml to the same value.
 
 Next step: run /orchestrate
 ```
@@ -413,6 +511,14 @@ Generate a Project Context Document:
 
 Generate `spec.md` from the existing code alongside the Project Context Document — document what the code actually does (not the ideal state).
 
+For any module with no test files or no detectable test coverage, add an `## Untested behavior` subsection after that module's main spec content:
+
+```markdown
+## Untested behavior
+> **WARNING: no tests found for this module.** The behavior below is inferred from reading the source code and may not reflect the intended or actual runtime behavior.
+- [list each behavior observed but unverified by tests]
+```
+
 **MANDATORY CHECKPOINT:**
 ```
 Before generating tasks, I need you to validate this analysis.
@@ -431,6 +537,34 @@ Correct me before we continue.
 
 Wait for response and update both the context document and spec.md.
 
+**Generate design.md from the existing codebase**
+
+Using the approved Project Context Document and spec.md, generate `design.md` with these exact section headings — `orchestrate.md` slices context by these names and agents receive empty context if they are missing or renamed:
+
+```markdown
+## Architecture
+[Detected stack, structure, module boundaries, and key architectural patterns from the existing code]
+
+## Module Contracts
+[Interfaces, shared data models, and API schemas found in the codebase]
+
+## Testing Strategy
+[Existing test types and coverage, critical modules, coverage gaps identified during archaeology]
+
+## Documentation Plan
+[Existing docs found and what should be maintained going forward]
+```
+
+Present for review:
+
+```
+I've drafted design.md from the existing codebase. Please review — this document drives the context agents receive for all future tasks.
+
+Does it accurately reflect the architecture?
+```
+
+Wait for approval before continuing.
+
 **Phase B — Delta tasks**
 
 Generate ONLY tasks for what's missing or incomplete. Do NOT create tasks to rewrite what works.
@@ -444,7 +578,10 @@ Based on the analysis, here are the tasks I'd generate:
 Does this cover what needs to be done, or should I add/remove anything?
 ```
 
-Wait for approval, then generate tasks and proceed to execution setup.
+Wait for approval, then:
+1. Create all seven task folders (each with a `.gitkeep`) if they do not already exist:
+   `tasks/available/`, `tasks/blocked/`, `tasks/in-progress/`, `tasks/pr-open/`, `tasks/ready-for-pr/`, `tasks/done/`, `tasks/cancelled/`
+2. Generate task files and proceed to execution setup.
 
 ---
 

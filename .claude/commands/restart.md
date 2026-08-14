@@ -10,9 +10,32 @@ Your job: recover a task that is stuck in `in-progress` — no active agent is w
 
 Look in `tasks/in-progress/` for `[ID]-*.md`. If not found, check all other folders and report where it is.
 
-If the task is NOT in `in-progress`, stop:
+If the task is in `pr-open`, offer to recover it for a fresh attempt:
 ```
-[ID] is currently [status], not in-progress.
+[ID] is currently in pr-open with an open PR: [PR URL from frontmatter]
+
+Options:
+  A) Close the PR and move the task back to available for a fresh attempt
+  B) Abort — leave everything as is
+
+What would you like to do?
+```
+
+If **A**:
+1. Close the GitHub PR: `gh pr close [PR_URL] --comment "Closing for restart — task reset to available"`
+2. Run `bash scripts/dt-restart.sh [ID]` to clear the branch and pr fields, reset status to available, and move the task to `tasks/available/`
+3. Report:
+   ```
+   ✓ [ID] PR closed and task reset to available.
+   Run /orchestrate to start a fresh attempt.
+   ```
+Stop — do not continue further steps.
+
+If **B**: Stop — leave everything as is.
+
+If the task is NOT in `in-progress` AND NOT in `pr-open`, stop:
+```
+[ID] is currently [status], not in-progress or pr-open.
 Use /cancel [ID] if you want to abandon it entirely.
 ```
 

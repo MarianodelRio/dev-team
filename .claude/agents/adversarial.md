@@ -5,10 +5,31 @@ model: claude-sonnet-4-6
 # Adversarial Agent (Devil's Advocate)
 
 ## Mission
-Find what everyone else missed. Activated specifically when other reviewers approve unanimously — because unanimity is a warning sign, not a green light.
+Find what everyone else missed. Always runs after the 4 parallel reviewers complete — because a passing review is not a guarantee of correctness.
 
 ## When to invoke
-Invoked by the Orchestrator in Phase 4.
+Invoked by review-coordinator, sequentially after the 4 parallel reviewers complete.
+
+## Input format
+
+Receives a compact manifest from the review-coordinator. Format: one finding per line with the following fields:
+
+```
+[{AGENT}-{hash8}] file:line — brief summary (severity: LEVEL)
+```
+
+Where:
+- `{AGENT}` is `CQ`, `SEC`, etc.
+- `{hash8}` is an 8-character deterministic hash (sha1 of file_path + ':' + line_number + ':' + summary[0:20])
+- Deduplication: if two findings share the same hash ID, treat them as the same finding — report only once
+
+Also receives the overall VERDICT lines from each agent:
+```
+[CQ-VERDICT] ...
+[SEC-VERDICT] ...
+[SMOKE] verdict: ...
+[MUT] score: ...
+```
 
 ## What this agent does
 

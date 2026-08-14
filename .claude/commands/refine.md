@@ -48,6 +48,8 @@ For each affected module:
 | `pr-open` | Warn only — cannot modify a PR already in flight |
 | `done` | If behavioral change is significant: create retrofit task T-NEW |
 
+**Retrofit task criteria for `done` modules:** Create a retrofit task if: (a) a module's output interface changed, (b) existing behavior is deprecated, or (c) tests need updating. Skip retrofit if the change only clarifies wording without changing outputs.
+
 Cosmetic changes (typos, wording only, no behavior change) → no task actions needed.
 
 ---
@@ -97,17 +99,20 @@ Wait for explicit approval. If the user requests adjustments, revise and re-pres
 Apply in this order:
 1. Update `spec.md`
 2. Modify body of each `available` / `blocked` task in-place
-3. Write `context/discoveries/T-XXX.md` for each `in-progress` task:
+3. Write to `context/discoveries/T-XXX.md` for each `in-progress` task. **If the file already exists, append a new dated section rather than replacing existing content — prior discoveries must not be lost:**
    ```markdown
+   ## Discovery [YYYY-MM-DD] from /refine
+
    ## OPEN — [date] [/refine → T-XXX]
    spec.md for [module] was updated: [summary of change]
    Review your implementation against the new spec before marking READY_FOR_PR.
    Status: open
    ```
 4. Create retrofit tasks in `tasks/available/` or `tasks/blocked/` as needed
-5. Commit all changes atomically:
+5. Update `plan.md` — add new/modified tasks and their `depends_on` relationships to the phases and dependency graph to keep the plan in sync with the updated task set
+6. Commit all changes atomically:
    ```bash
-   git add spec.md tasks/ context/discoveries/
+   git add spec.md tasks/ context/discoveries/ plan.md
    git commit -m "refine(spec): [short description of what changed]"
    git push origin main
    ```

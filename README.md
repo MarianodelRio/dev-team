@@ -45,9 +45,11 @@ One human checkpoint: after analysis, before code. Everything else is autonomous
 
 ## Prerequisites
 
-- **Claude Code** — the CLI you run the commands in
-- **git** — installed and configured
-- **GitHub CLI (`gh`)** — installed and authenticated (`gh auth login`); `/orchestrate` uses it to open PRs
+- **Bash 4.0+** (macOS users: `brew install bash`)
+- **git 2.20+**
+- **GitHub CLI** (`gh`) — [install](https://cli.github.com/)
+- **Claude Code** — [install](https://claude.ai/code)
+- A GitHub repository (local git repo initialized and pushed)
 - **`main` must be unprotected** — dev-team pushes task status metadata (`tasks/*.md`) directly to `main` as its coordination mechanism. Branch protection breaks the workflow. If your org mandates protection, exclude `tasks/**` from the ruleset.
 
 ---
@@ -119,7 +121,7 @@ dev-team adapts to where you are:
 
 **Coordinator pattern** — Each orchestrator session delegates to specialized sub-agents: a Planner for the implementation plan, a Coder for the actual code, and five parallel reviewers for quality. One coordinator, many specialists.
 
-**Batteries included** — Docker, CI, .env, .gitignore, security policy, PR templates — all generated automatically for your stack. Optional auto-merge closes the loop for low-risk PRs.
+**Batteries included** — Docker, CI, .env, .gitignore, security policy, PR templates — all generated automatically for your stack. Optional auto-merge closes the loop for low-risk PRs (coming soon — not yet implemented).
 
 **Model-agnostic configuration** — Configure which model handles reasoning vs. implementation vs. fast tasks in `devteam.config.yml`.
 
@@ -150,7 +152,7 @@ dev-team adapts to where you are:
 
 ## Configuration
 
-`devteam.config.yml` controls all framework behavior: project type, model selection, PR mode (automatic/manual), human checkpoints, advisor policy, review profile (`full`/`fast`/`auto`), auto-merge, quality gate thresholds, critical modules, smoke test mode, and which batteries to include.
+`devteam.config.yml` controls all framework behavior: project type, model selection, PR mode (automatic/manual), human checkpoints, advisor policy, review profile (`full`/`fast`/`auto`), auto-merge (coming soon — not yet implemented), quality gate thresholds, critical modules, smoke test mode, and which batteries to include.
 
 See [devteam.config.yml](devteam.config.yml) for all options with documentation, and [docs/WORKFLOWS.md](docs/WORKFLOWS.md) for the "which command do I run now?" cheatsheet.
 

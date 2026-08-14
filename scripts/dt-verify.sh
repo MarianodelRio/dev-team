@@ -15,7 +15,11 @@ source "$SCRIPT_DIR/dt-common.sh"
 DIR=""; DRY=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --worktree) shift; DIR="${1:-}" ;;
+    --worktree)
+      if [[ -z "${2:-}" ]] || [[ "${2:-}" == --* ]]; then
+        echo "ERROR: --worktree requires a path argument"; exit 1
+      fi
+      shift; DIR="${1:-}" ;;
     --dry-run)  DRY=1 ;;
     *)          die "unknown argument: $1" ;;
   esac
@@ -42,6 +46,7 @@ fi
 FAILED=0
 PASSED=0
 SKIPPED=0
+CHECKS_RUN=0
 RESULT_TEST="skipped"
 RESULT_LINT="skipped"
 RESULT_TYPE="skipped"
@@ -54,6 +59,7 @@ run_check() {
     return 0
   fi
 
+  CHECKS_RUN=$((CHECKS_RUN + 1))
   log "verify: $name → $cmd"
   local t0 rc output
   t0=$(date +%s)
@@ -63,12 +69,12 @@ run_check() {
   if [ "$rc" -eq 0 ]; then
     ok "$name (${elapsed}s)"
     PASSED=$((PASSED + 1))
-    eval "$result_var=pass"
+    printf -v "$result_var" 'pass'
   else
     echo "[dt] ✗ $name — exit $rc" >&2
     echo "$output" >&2
     FAILED=$((FAILED + 1))
-    eval "$result_var=fail"
+    printf -v "$result_var" 'fail'
   fi
 }
 
@@ -81,6 +87,12 @@ echo ""
 echo "VERIFY_TEST=$RESULT_TEST"
 echo "VERIFY_LINT=$RESULT_LINT"
 echo "VERIFY_TYPE_CHECK=$RESULT_TYPE"
+
+if [ "$CHECKS_RUN" -eq 0 ]; then
+  echo "WARNING: No verification commands configured. Set commands.test/lint/build in devteam.config.yml"
+  echo "VERIFY_RESULT=skip"
+  exit 0
+fi
 
 if [ "$FAILED" -gt 0 ]; then
   err "$FAILED/$((PASSED + FAILED)) configured checks failed"
