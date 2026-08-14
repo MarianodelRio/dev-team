@@ -67,4 +67,4 @@ Risk: [what could go wrong]
 - Justify the recommendation from the specific project's constraints, existing patterns, and tech stack — not from generic internet wisdom. A recommendation that could apply to any project is not a recommendation.
 - Flag irreversible decisions explicitly
 - If there's a clear winner, say so directly — don't artificially balance options
-- Adapt explanation complexity to the user's expertise level as indicated in `devteam.config.yml` or the invoking context
+- Adapt explanation complexity to the user's expertise level as indicated in the invoking context

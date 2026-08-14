@@ -112,9 +112,10 @@ quality:
   # Minimum test coverage on core modules (0-100)
   coverage_threshold: 70
 
-  # How many review sub-agents /prepare-pr runs, scaled to the diff's risk:
-  #   full — all 5 sub-agents (code quality, adversarial, security, smoke, mutation)
-  #   fast — code quality + security only (for trivial diffs)
+  # Controls which review sub-agents the review-coordinator runs, scaled to the diff's risk.
+  # Used by both /orchestrate (Phase 4) and /prepare-pr (escape-hatch mode).
+  #   full — all sub-agents (code-quality, security, smoke-tester, mutation-tester, adversarial)
+  #   fast — code-quality + security only (for trivial diffs; adversarial skipped)
   #   auto — fast if the diff touches only docs/config, full if it touches code/tests
   # Safety override: a diff touching protected files or shared contracts is ALWAYS full.
   review_profile: auto

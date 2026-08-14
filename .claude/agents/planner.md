@@ -50,14 +50,14 @@ Invoked by the Orchestrator in Phase 2, after the human checkpoint and before im
 
 Via prompt from the Orchestrator:
 - The full task file (with any adjustments accepted at the checkpoint)
-- The path to `design.md`
+- planner_slice: relevant module section + Testing strategy + Shared contracts, extracted from design.md and passed inline by the Orchestrator — do not read design.md directly
 - Relevant spec.md sections: the module section(s) for the task's assigned folders, pre-selected and passed by the Orchestrator
 - Relevant decisions: pre-filtered content from `context/decisions/` files (tasks with overlapping folders), selected and passed by the Orchestrator
 - Open discoveries: pre-filtered OPEN entries from `context/discoveries/` files, selected and passed by the Orchestrator
 
 ## What to read
 
-- `design.md` — architecture sections relevant to the task's module
+- The design.md sections received in the input (planner_slice: module section, Testing strategy, Shared contracts) — do not read design.md directly, use what the Orchestrator passed
 - The spec.md sections received in the input — defines the expected behavior of the module(s) you are planning; do not re-read spec.md directly, use what the Orchestrator passed
 - Current files in the folders assigned to the task (to understand the real state of the code before planning)
 
@@ -83,7 +83,7 @@ Via prompt from the Orchestrator:
 
 ### Required tests
 - [test type] for [function/module] — [what scenario it covers]
-- (types per the Testing strategy in design.md for this module)
+- (types per the Testing strategy in the planner_slice the Orchestrator passed)
 
 ### Internal dependencies
 - [if the plan requires X to exist before Y]
