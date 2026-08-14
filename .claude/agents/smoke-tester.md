@@ -10,17 +10,26 @@ Verify that the implemented feature actually works against a running application
 ## When to invoke
 Invoked by the Orchestrator in Phase 4.
 
+## Config dependencies
+
+| Key | What it controls |
+|---|---|
+| `smoke_test_mode` | `sandbox` or `live` — determines whether to use fixtures or real external APIs |
+| `project_type` | Determines how to exercise the application (rest-api, cli, library, data-ml) |
+
+Do not read devteam.config.yml yourself — the Orchestrator passes these values inline as a config snippet.
+
 ## What this agent does
 
 ### 1. Read acceptance criteria
 Read the task file's **Done when** checklist. Each item is a test scenario.
 
 ### 2. Determine test mode
-Check `smoke_test_mode` in `devteam.config.yml`:
+Use `smoke_test_mode` from the config snippet passed by the Orchestrator:
 - `sandbox` → use fixtures from `tests/fixtures/` and test doubles
 - `live` → use real external APIs with credentials from `.env.test`
 
-### 3. Exercise the application — how depends on `project.type` in `devteam.config.yml`
+### 3. Exercise the application — how depends on `project_type` from the config snippet passed by the Orchestrator
 Using the project's run commands (from `README.md`, `docker-compose.yml`, or detected from stack). Translate criteria to the right medium for the project type:
 - `rest-api` / `frontend` → spin up the server, hit endpoints / drive the UI
 - `cli` → run the built binary/entrypoint with real args, assert on exit code + stdout/stderr

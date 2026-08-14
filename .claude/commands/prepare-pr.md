@@ -61,31 +61,43 @@ If anything fails: report the specific error and stop. Do not fix behavioral fai
 
 ---
 
-## Step 4 — Reviewers in parallel
+## Step 3b — Extract config
 
-Read `quality.review_profile` in `devteam.config.yml`. Inspect the diff:
+```bash
+source scripts/dt-common.sh
+CFG_REVIEW_PROFILE=$(dt_config quality.review_profile)
+CFG_PR_MODE=$(dt_config workflow.pr_mode)
+CFG_REQUIRE_MUTATION_TESTS=$(dt_config quality.require_mutation_tests)
+CFG_CRITICAL_MODULES=$(dt_config quality.critical_modules)
+CFG_MUTATION_SCORE_THRESHOLD=$(dt_config quality.mutation_score_threshold)
+CFG_SMOKE_TEST_MODE=$(dt_config quality.smoke_test_mode)
+CFG_PROJECT_TYPE=$(dt_config project.type)
+```
+
+---
+
+## Step 4 — Review (via review-coordinator)
+
+Inspect the diff for protected files or shared contracts:
 
 ```bash
 git diff --name-only origin/main
 ```
 
-- `full` → all sub-agents (4a–4e)
-- `fast` → code-quality + security only
-- `auto` → if only docs/config changed → fast; if any code changed → full
+Read `design.md` and extract `code_quality_slice` (three sections: Module DAG, Testing strategy, Documentation plan). If `design.md` is absent (escape-hatch mode for migrated tasks), set `code_quality_slice` to empty.
 
-Safety override: if the diff touches protected files or shared contracts → force full.
+Launch the `review-coordinator` sub-agent with:
+- `diff` — output of `git diff origin/main` from the feature branch
+- `task_file` — full task file
+- `context_slice` — empty (no Phase 1 context packet available in escape-hatch mode)
+- `code_quality_slice` — Module DAG + Testing strategy + Documentation plan from `design.md`; empty if `design.md` is absent
+- `config`:
+  - `smoke_test_mode`: `$CFG_SMOKE_TEST_MODE`, `project.type`: `$CFG_PROJECT_TYPE`
+  - `require_mutation_tests`: `$CFG_REQUIRE_MUTATION_TESTS`, `critical_modules`: `$CFG_CRITICAL_MODULES`, `mutation_score_threshold`: `$CFG_MUTATION_SCORE_THRESHOLD`
+- `review_profile` — `$CFG_REVIEW_PROFILE`
+- `touches_protected` — `true` if any file in the diff is a protected file or shared contract; `false` otherwise
 
-Launch in parallel:
-
-**4a. code-quality** — scope, patterns from design.md, architecture, clarity
-
-**4b. adversarial** — finds what the others missed; activates on unanimous approval
-
-**4c. security** — OWASP Top 10 on the diff. Severity: BLOCKER | WARNING | INFO
-
-**4d. smoke-tester** — "Done when" criteria from the task file against the running app
-
-**4e. mutation-tester** — ONLY if `require_mutation_tests: true` OR touches critical modules
+The coordinator applies the safety override internally: touching protected files or contracts always forces `full` profile regardless of `review_profile`. Wait for the consolidated review report.
 
 ---
 
@@ -142,9 +154,9 @@ If verify fails: report and stop — do not open the PR until clean. The user mu
 
 ## Step 6 — Open PR and update task
 
-Read `pr_mode` in `devteam.config.yml`.
+Use `$CFG_PR_MODE` (extracted in Step 3b).
 
-If `pr_mode: automatic`:
+If `$CFG_PR_MODE` is `automatic`:
 
 Write the PR body to a temp file, then call `dt-pr.sh`:
 ```bash
@@ -176,7 +188,7 @@ bash scripts/dt-pr.sh T-XXX \
 ```
 The script creates the PR, captures the URL, moves the task from `tasks/ready-for-pr/` to `tasks/pr-open/`, and commits to main. It outputs `PR_NUMBER` and `PR_URL`.
 
-If `pr_mode: manual`:
+If `$CFG_PR_MODE` is `manual`:
 
 Print the `gh pr create` command for the user to run:
 ```bash

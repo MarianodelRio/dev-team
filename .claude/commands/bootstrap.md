@@ -327,6 +327,8 @@ Generate specialized agents for this project's exact modules. For each major mod
 
 Generate `CLAUDE.md` customized for this project (replace generic content with project-specific architecture, module list, and rules).
 
+Copy `.claude/AGENTS.md` from the framework (this file is not project-specific — it contains the runtime formats and rules injected into every agent session; do not rewrite it, just ensure it is present in `.claude/AGENTS.md`).
+
 Generate the test structure and documentation from `design.md`:
 - If `batteries.test_scaffold: true` → create `tests/` and `tests/fixtures/` following the layout in the Testing strategy, with a `tests/README.md` explaining the structure and how to run each test type
 - Create the **primary doc file** named in the Documentation plan (e.g. `docs/api.md`, `docs/cli.md`, `docs/usage.md`, `docs/pipeline.md`) with a skeleton appropriate to the project type — do not assume `docs/api.md` for non-API projects
@@ -361,6 +363,7 @@ Generated:
 ✓ plan.md
 ✓ X tasks (Y available now, Z blocked)
 ✓ CLAUDE.md (project-specific)
+✓ .claude/AGENTS.md (agent runtime reference)
 ✓ .claude/agents/ (X specialized agents)
 ✓ [list of batteries generated]
 

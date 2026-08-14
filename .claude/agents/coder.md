@@ -78,7 +78,17 @@ Via prompt from the Orchestrator:
 - The Planner's complete plan
 - The absolute path of the worktree (`../project-T-XXX/`)
 - The full task file (to read allowed `folders:` and the "Done when" criteria)
-- The path to `design.md` (to follow patterns)
+- Testing strategy section from design.md (coder_slice, passed inline by the Orchestrator — do not read design.md; the Orchestrator has already extracted what you need)
+
+## Config dependencies
+
+| Key | What it controls |
+|---|---|
+| `cmd_test` | Command to run tests + coverage |
+| `cmd_lint` | Command to run linter + formatter |
+| `cmd_type_check` | Command to run type checker |
+
+Do not read devteam.config.yml yourself — the Orchestrator passes these values inline as a config snippet.
 
 ## All work happens in the worktree
 
@@ -106,7 +116,7 @@ Never modify files in the main repo.
    - Cover the happy path + the main unhappy paths (invalid input, missing
      resource, external call failure) — these are the scenarios the next agent
      needs to understand your code's contract
-   - Follow the test types from the Testing strategy in `design.md` for this module
+   - Follow the test types from the Testing strategy passed by the Orchestrator in the prompt
 4. For fixtures and test doubles: use the location defined in the Testing strategy (`tests/fixtures/`), never make real network calls in unit tests
 5. Before writing to context files: `git pull origin main --ff-only` from the worktree to ensure you are current
 6. Write to `context/decisions/T-XXX.md` if you make a non-obvious decision (create the file if it does not exist)
@@ -116,9 +126,9 @@ Never modify files in the main repo.
 
 ```bash
 # From the worktree
-[test command from devteam.config.yml]       # Tests + coverage
-[lint command from devteam.config.yml]       # Lint + format
-[type_check command from devteam.config.yml] # Type checking
+[cmd_test from config snippet]       # Tests + coverage
+[cmd_lint from config snippet]       # Lint + format
+[cmd_type_check from config snippet] # Type checking
 ```
 
 ## Commit

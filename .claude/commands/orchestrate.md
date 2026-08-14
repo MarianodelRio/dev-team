@@ -13,24 +13,62 @@ You are the only one who talks to the user. Sub-agents report to you.
 git fetch origin
 git checkout main
 git pull origin main --ff-only
+bash scripts/dt-board.sh --no-fetch
 ```
 
-If no task ID is provided:
-- Read all tasks in `tasks/available/`
-- Filter: `depends_on` all in `tasks/done/`, no remote branch (`origin/feature/T-XXX-*`)
-- Select by: 1) deps done, 2) no branch, 3) unblocks the most tasks, 4) smallest size
-- If no tasks: report status (in-progress, blocked) and stop
+Extract config values once here and carry them as variables through all phases:
+```bash
+source scripts/dt-common.sh
+CFG_PR_MODE=$(dt_config workflow.pr_mode automatic)
+CFG_HUMAN_CHECKPOINT=$(dt_config workflow.human_checkpoint before_code)
+CFG_MAX_BLOCKER_RETRIES=$(dt_config orchestration.max_blocker_retries 3)
+CFG_REQUIRE_MUTATION_TESTS=$(dt_config quality.require_mutation_tests false)
+CFG_CRITICAL_MODULES=$(dt_config quality.critical_modules "[]")
+CFG_MUTATION_SCORE_THRESHOLD=$(dt_config quality.mutation_score_threshold 60)
+CFG_SMOKE_TEST_MODE=$(dt_config quality.smoke_test_mode sandbox)
+CFG_PROJECT_TYPE=$(dt_config project.type unknown)
+CFG_CMD_TEST=$(dt_config commands.test "")
+CFG_CMD_LINT=$(dt_config commands.lint "")
+CFG_CMD_TYPE_CHECK=$(dt_config commands.type_check "")
+```
 
-If a task ID is provided: verify it exists and is available.
+Read `.dt-index.json` for all task-selection decisions below (`git fetch` was already done above; `--no-fetch` skips a redundant network round-trip).
+
+**If a task ID is provided:**
+- Look up `tasks["T-XXX"]` in the index. If the key is absent, fall back to `find tasks/ -name "T-XXX-*.md"` and report its location and status, then stop.
+- If `folder != "available"`: report "T-XXX is currently [folder] — not available." and stop.
+- If `claimed_remote == true`: warn "T-XXX has a remote branch — it may be claimed by another agent. Run /restart T-XXX if it looks stuck." Stop unless the user explicitly overrides.
+- Proceed with that task.
+
+**If no task ID is provided:**
+- Read `summary.critical_path_next`. If non-empty and `tasks[critical_path_next].claimed_remote == false`: select that task.
+- If `critical_path_next` is `""` (no unclaimed available task exists):
+  - `summary.in_progress > 0`: those tasks are in flight — list them and suggest /status.
+  - `summary.available == 0` and `summary.blocked > 0`: all remaining tasks are blocked — list what they are waiting for.
+  - All counts zero: no tasks remain — suggest /add-task or /bootstrap.
+  - Stop.
+
+> **Tiebreaker note:** `critical_path_next` breaks ties by smallest task-ID number (T-001 beats T-003 on equal unblock count). The previous rule used `size` (smallest task first) as the final tiebreaker. `size` is not stored in the index. The ID-based tiebreaker is deterministic and avoids reading individual task files. If exact `size`-based tiebreaking matters for a specific run, read the individual task files only for the tied candidates and compare their `size` fields manually.
 
 ---
 
 ## PHASE 1 — Analysis (Architect sub-agent)
 
+**Context packet — read design.md and spec.md once here; pass slices to each sub-agent (do not pass the full files downstream):**
+
+Read `design.md` once and extract:
+- `architect_slice`: Architecture overview section + Module list/DAG + Shared contracts section + Security boundaries (if present) + NFRs section
+- `planner_slice`: Shared contracts section + Testing strategy section + the module subsection(s) relevant to the task's `folders:` field
+- `coder_slice`: Testing strategy section only
+- `code_quality_slice`: Module list/DAG + Testing strategy section + Documentation plan section
+
+Read `spec.md` and extract:
+- `spec_sections`: module section(s) whose name corresponds to the task's `folders:` per design.md
+
 Launch the Architect as a sub-agent with:
 - Full task file
-- Full `design.md`
-- Relevant spec.md sections: read `spec.md`, extract the module section(s) whose name corresponds to the task's `folders:` per design.md
+- `architect_slice` from context_packet
+- `spec_sections` from context_packet
 - `plan.md`
 - Relevant decisions: read `context/decisions/T-YYY.md` for each task in `tasks/done/` and `tasks/in-progress/` whose `folders:` overlap with the current task's `folders:`
 - Open discoveries: read all `context/discoveries/T-YYY.md` files that exist across done and in-progress tasks; include only entries with `Status: open` (discoveries are cross-module alerts — do not filter by folder)
@@ -104,8 +142,8 @@ Wait for explicit confirmation. If the user redirects or adjusts scope, incorpor
 
 Launch the Planner as a background sub-agent with:
 - Approved task file (with any adjustments)
-- `design.md`
-- Relevant spec.md sections: the same module sections passed to the Architect in Phase 1
+- `planner_slice` from context_packet
+- `spec_sections` from context_packet (same sections passed to Architect in Phase 1)
 - Relevant decisions: content from `context/decisions/T-YYY.md` files selected in Phase 1 (tasks with overlapping folders)
 - Open discoveries: OPEN entries from `context/discoveries/T-YYY.md` files selected in Phase 1
 - List of current files in the task's `folders:`
@@ -130,7 +168,9 @@ Launch the Coder as a background sub-agent with:
 - The Planner's complete plan
 - Absolute path of the worktree: `../[project]-T-XXX/`
 - Full task file (folders:, Done when checklist)
-- Path to `design.md`
+- `coder_slice` from context_packet (Testing strategy inline)
+- config: commands.test = `CFG_CMD_TEST`, commands.lint = `CFG_CMD_LINT`, commands.type_check = `CFG_CMD_TYPE_CHECK`
+- Do not read `devteam.config.yml` yourself — use only the config values provided above
 
 The Coder works exclusively in the worktree. The Orchestrator waits for its result.
 
@@ -172,16 +212,27 @@ bash scripts/dt-verify.sh --worktree ../[project]-T-XXX
 ```
 If it fails: SendMessage to the Coder with the specific error → Coder fixes → verify again.
 
-Launch reviewers in parallel (all simultaneously):
-- `code-quality` — diff of the feature branch vs main
-- `security` — diff of the feature branch vs main
-- `adversarial` — diff + results from code-quality and security
-- `smoke-tester` — "Done when" criteria from the task file + stack info from devteam.config.yml
-- `mutation-tester` — ONLY if `require_mutation_tests: true` OR the task touches modules in `quality.critical_modules`
+Determine whether the diff touches protected files or shared contracts (use the Architect's Phase 1 output — `### Protected files` and `### Affected contracts`).
 
-Synthesize results using this rubric. Track retry count per blocker type.
-Read `orchestration.max_blocker_retries` from `devteam.config.yml` as the
-global ceiling: if a blocker type allows 2 retries but this value is lower,
+Launch the `review-coordinator` sub-agent with:
+- `diff` — output of `git diff origin/main` from the feature branch worktree
+- `task_file` — full task file
+- `context_slice` — the relevant decisions and spec sections assembled during Phase 1
+- `code_quality_slice` from context_packet
+- `config`:
+  - `project_type`: CFG_PROJECT_TYPE
+  - `smoke_test_mode`: CFG_SMOKE_TEST_MODE
+  - `require_mutation_tests`: CFG_REQUIRE_MUTATION_TESTS
+  - `critical_modules`: CFG_CRITICAL_MODULES
+  - `mutation_score_threshold`: CFG_MUTATION_SCORE_THRESHOLD
+- `review_profile` — value of `quality.review_profile` from `devteam.config.yml`
+- `touches_protected` — `true` if Phase 1 Architect reported protected files or contract changes; `false` otherwise
+- Do not read `devteam.config.yml` yourself — use only the config values provided above
+
+Wait for the consolidated review report from the coordinator.
+
+Synthesize the consolidated review report using this rubric. Track retry count per blocker type.
+Use `CFG_MAX_BLOCKER_RETRIES` as the global ceiling: if a blocker type allows 2 retries but this value is lower,
 apply the lower limit.
 
 **Blocker classification and retry policy:**
@@ -222,7 +273,7 @@ WARNING without any blocker: open PR with warnings prominently flagged in the PR
 CLEAN from all reviewers: proceed to open PR.
 
 **Checkpoint before PR (if configured):**
-Read `workflow.human_checkpoint` from `devteam.config.yml`. If `before_pr` or `both`, present to the user before opening the PR:
+Use `CFG_HUMAN_CHECKPOINT`. If `before_pr` or `both`, present to the user before opening the PR:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -237,7 +288,7 @@ Adversarial: [nothing found / found X — already fixed]
 Open the PR?
 ```
 
-Wait for explicit confirmation. If the user requests changes: apply and re-run affected reviewers before proceeding.
+Wait for explicit confirmation. If the user requests changes: apply and re-launch the `review-coordinator` before proceeding.
 If `before_code` (default): skip this checkpoint and proceed immediately.
 
 **Final sync before opening PR:**
@@ -261,9 +312,9 @@ bash scripts/dt-verify.sh --worktree ../[project]-T-XXX
 If verify fails: treat as a last-minute blocker — send to the Coder via SendMessage with budget 1, then escalate to the user if still failing. Do not open the PR until clean.
 
 **Open PR:**
-Read `workflow.pr_mode` from `devteam.config.yml`:
+Use `CFG_PR_MODE`:
 
-If `pr_mode: automatic` (default):
+If `CFG_PR_MODE` is `automatic` (default):
 
 Write the PR body to a temp file, then call `dt-pr.sh`:
 ```bash
@@ -295,7 +346,7 @@ bash scripts/dt-pr.sh T-XXX \
 ```
 The script creates the PR, captures the URL, moves the task to `tasks/pr-open/`, commits to main, and removes the worktree. It outputs `PR_NUMBER` and `PR_URL`.
 
-If `pr_mode: manual`:
+If `CFG_PR_MODE` is `manual`:
 
 Print the `gh pr create` command for the user to run:
 ```bash

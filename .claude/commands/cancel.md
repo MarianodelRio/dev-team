@@ -8,9 +8,15 @@ Your job: cleanly abandon a task that is no longer needed. This is destructive �
 
 ## Step 1 — Find the task
 
-Search `tasks/` (all subfolders) for `[ID]-*.md`. Report where it is.
+```bash
+bash scripts/dt-board.sh
+```
 
-If already in `tasks/done/`:
+Read `.dt-index.json`. Look up `tasks["[ID]"]` in the index for status and dependent tasks.
+
+If the key is absent in the index, fall back to searching `tasks/` (all subfolders) for `[ID]-*.md`. Report where it is.
+
+If `folder == "done"` (or the file is in `tasks/done/`):
 ```
 [ID] is already DONE and cannot be cancelled.
 ```
@@ -20,6 +26,8 @@ Stop.
 
 ## Step 2 — Show current state
 
+Read the individual task file (found in Step 1) for the full frontmatter. Use `tasks["[ID]"].unblocks` from `.dt-index.json` for the dependent task list — no need to scan all task files.
+
 ```
 Task: [ID] — [title]
 Status: [current status]
@@ -27,7 +35,7 @@ Branch: [branch or "none"]
 Depends on: [deps or "none"]
 
 Tasks that depend on this one (would be affected by cancellation):
-[list any tasks in tasks/ that have [ID] in their depends_on, or "None"]
+[tasks["[ID]"].unblocks from .dt-index.json, or "None"]
 ```
 
 ---
