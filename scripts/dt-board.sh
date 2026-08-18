@@ -50,7 +50,7 @@ tadd()  { printf ' %s' "$3" >> "$TDIR/$1.$2"; }       # tadd  MAP KEY VALUE (spa
 ALL_IDS=""
 
 # ── Pass 1: read every task file ─────────────────────────────────────────────
-for folder in $TASK_FOLDERS; do
+for folder in "${TASK_FOLDERS[@]}"; do
   for f in "$REPO_ROOT/tasks/$folder/"*.md; do
     [ -e "$f" ] || continue
     id="$(task_field "$f" id)"
@@ -100,7 +100,7 @@ js() { local v="${1//\\/}"; printf '%s' "${v//\"/}"; }
 
 # ── critical_path_next: available + unclaimed, most unblocks, smallest id ─────
 # Extract numeric part of an ID (T-001 → 1, B-42 → 42) for numeric tiebreaking.
-id_num() { printf '%d' "${1#*-}"; }
+id_num() { printf '%d' "$((10#${1#*-}))"; }
 
 CRIT_NEXT=""
 CRIT_SCORE=-1
