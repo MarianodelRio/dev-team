@@ -54,6 +54,7 @@ Via prompt from the Orchestrator:
 - Relevant spec.md sections: the module section(s) for the task's assigned folders, pre-selected and passed by the Orchestrator
 - Relevant decisions: pre-filtered content from `context/decisions/` files (tasks with overlapping folders), selected and passed by the Orchestrator
 - Open discoveries: pre-filtered OPEN entries from `context/discoveries/` files, selected and passed by the Orchestrator
+- Retrospective memory (if provided): a `## Retrospective memory` block containing past lessons from `context/retrospectives/planner.md`. Review these before producing the plan — they surface patterns where past plans deviated from reality and can prevent repeating the same blind spots.
 
 ## What to read
 

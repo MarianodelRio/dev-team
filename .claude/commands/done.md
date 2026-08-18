@@ -92,6 +92,62 @@ Then stage and commit this change to main alongside the done status update (or a
 
 ---
 
+## Step 3.5 — Extract retrospective lessons
+
+> Skip this step entirely if `memory.retrospective_memory_enabled` is `false` in `devteam.config.yml`.
+
+Read three sources for the completed task [ID]. All files are now on main (the done script synced and the PR merge brought feature-branch context files into main):
+
+1. `tasks/done/[ID]-*.md` — read the `## Completed` section
+2. `context/decisions/[ID].md` — read if the file exists
+3. `context/discoveries/[ID].md` — read if the file exists
+
+For each retrospective file, apply these role assignments to decide which content produces lessons:
+
+| Retrospective file | Draw lessons from |
+|---|---|
+| `context/retrospectives/coder.md` | `## Completed → Key decisions`, `## Completed → Dependencies added`, and discoveries that expose a coding edge case or implementation pattern |
+| `context/retrospectives/planner.md` | `## Completed → Deviations from plan` (the plan was wrong or incomplete), and decisions or discoveries that reveal a planning blind spot (missed dependency, wrong scope estimate) |
+| `context/retrospectives/architect.md` | `context/decisions/[ID].md` entries that reflect an architectural ruling, and discoveries that crossed module boundaries unexpectedly |
+
+**Only write a lesson if the source reveals a non-trivial insight** — one that would change how an agent approaches a similar future task. If the task completed with no deviations, no architectural rulings, and no cross-module discoveries, skip this step entirely.
+
+**Anti-confabulation rule:** Every `Signal:` field MUST be a verbatim quote from one of the three sources above. Do not paraphrase, summarize, or infer — copy the exact words from the source document.
+
+**Entry format:**
+```markdown
+## L-NNN | T-XXX | YYYY-MM-DD | Weight: N
+**Folders:** [task folders from frontmatter]
+**Lesson:** [imperative sentence — what to do or avoid on similar tasks]
+**Signal:** "[verbatim quote]" *(source: ## Completed / context/decisions / context/discoveries)*
+```
+
+**Weight assignment:**
+- `3` — cross-module or architectural impact (drawn from discoveries or contract-touching decisions entries)
+- `2` — design or planning pattern (drawn from decisions entries or `Deviations from plan` bullets)
+- `1` — implementation detail (drawn from `Key decisions` or `Dependencies added` in `## Completed`)
+
+**L-NNN numbering:** Read the target file, find the highest existing `L-NNN` number, increment for each new entry. If the file does not exist yet, start at `L-001`.
+
+**Pruning:** After appending, count `## L-NNN` headings in the file. While count > 25: find the entry with the lowest Weight; on tie, take the lowest L number (oldest). Remove that entry's heading and its 3 body lines. Repeat until ≤ 25 entries.
+
+**Create the file if it does not exist** using this exact header before the first entry:
+```markdown
+# Retrospective Memory — [Coder | Planner | Architect]
+<!-- max 25 entries; prune lowest-weight (oldest on tie) when exceeded -->
+<!-- Weight: 3 = cross-module/architectural, 2 = design/planning, 1 = implementation detail -->
+
+```
+
+Commit the updated retrospective file(s) to main:
+```bash
+git add context/retrospectives/
+git commit -m "retro([ID]): lessons from [task title]"
+git push origin main
+```
+
+---
+
 ## Step 4 — Report unblocked tasks
 
 Use the script's output (and `.dt-index.json`) to report what was just unblocked.

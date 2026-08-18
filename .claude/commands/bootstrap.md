@@ -375,7 +375,7 @@ Read `devteam.config.yml` and validate tasks/ structure.
 Generate specialized agents for this project's exact modules.
 
 Before creating any agent file, check the proposed name against the reserved framework agent list:
-`orchestrator`, `architect`, `planner`, `coder`, `advisor`, `review-coordinator`, `code-quality`, `security`, `adversarial`, `smoke-tester`, `mutation-tester`
+`orchestrator`, `architect`, `planner`, `coder`, `advisor`, `review-coordinator`, `code-quality`, `security`, `adversarial`, `smoke-tester`, `mutation-tester`, `spec-coverage`
 
 If any module or service name conflicts with a reserved name, ask the user to rename the module before continuing:
 
@@ -393,12 +393,18 @@ For each approved module name:
 
 Generate `CLAUDE.md` customized for this project (replace generic content with project-specific architecture, module list, and rules).
 
-Copy `.claude/AGENTS.md` from the framework (this file is not project-specific — it contains the runtime formats and rules injected into every agent session; do not rewrite it, just ensure it is present in `.claude/AGENTS.md`).
+Ensure `.claude/steering/` exists with all four framework steering files. These are not project-specific — copy them from the framework source and do not rewrite them:
+- `always.md` — cross-cutting rules, injected into all agents
+- `task-format.md` — task frontmatter schema, injected into all agents
+- `context-formats.md` — context file formats, injected into orchestrator/architect/coder/planner
+- `coder-complete.md` — completion obligation, injected into the coder only
+
+Also keep `.claude/AGENTS.md` (the stub pointing to `steering/`) for backward compatibility.
 
 Create the context directories required by all agents and scripts:
 ```bash
-mkdir -p context/decisions context/discoveries
-touch context/decisions/.gitkeep context/discoveries/.gitkeep
+mkdir -p context/decisions context/discoveries context/retrospectives
+touch context/decisions/.gitkeep context/discoveries/.gitkeep context/retrospectives/.gitkeep
 ```
 
 Add (or append) the following entries to `.gitignore` to prevent temporary framework files from being committed accidentally:
@@ -455,10 +461,11 @@ Generated:
 ✓ plan.md
 ✓ X tasks (Y available now, Z blocked)
 ✓ CLAUDE.md (project-specific)
-✓ .claude/AGENTS.md (agent runtime reference)
+✓ .claude/steering/ (4 scoped steering files: always, task-format, context-formats, coder-complete)
+✓ .claude/AGENTS.md (stub pointing to steering/)
 ✓ .claude/agents/ (X specialized agents)
 ✓ tests/fixtures/smoke_test.sh (smoke test template — edit to add project-specific startup steps)
-✓ context/decisions/ and context/discoveries/ (agent context directories)
+✓ context/decisions/, context/discoveries/, and context/retrospectives/ (agent context directories)
 ✓ [list of batteries generated]
 
 Critical path: T-001 → T-002 → ...

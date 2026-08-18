@@ -57,6 +57,8 @@ quality:
   require_mutation_tests: false   # Enable mutation testing (introduces deliberate bugs to verify test quality). Valid values: true, false.
   mutation_score_threshold: 80    # Mutation test threshold (0-100). Only used if require_mutation_tests: true.
   critical_modules: []            # Modules where mutation testing always runs regardless of require_mutation_tests. Populated by /bootstrap from design.md.
+  spec_coverage_enabled: false    # Run spec-coverage agent in parallel with reviewers. Maps spec.md Logic+Interface constraints to tests in the PR diff. Advisory only — never blocks. Valid values: true, false.
+  spec_coverage_threshold: 80     # Minimum % of spec constraints covered by tests before WARN_LOW verdict. Range: 0-100. Only used when spec_coverage_enabled: true.
 
 # ─────────────────────────────────────────
 # COMMANDS
@@ -78,6 +80,14 @@ batteries:
   security_policy: true     # Generate SECURITY.md with vulnerability reporting instructions. Valid values: true, false.
   github_templates: true    # Generate GitHub PR and Issue templates. Valid values: true, false.
   test_scaffold: true       # Scaffold the test structure decided in design.md Testing strategy. Valid values: true, false.
+
+# ─────────────────────────────────────────
+# MEMORY
+# ─────────────────────────────────────────
+memory:
+  retrospective_memory_enabled: true  # Persist lessons learned from completed tasks in context/retrospectives/.
+                                      # Lessons extracted at /done, injected into coder/planner/architect in
+                                      # /orchestrate Phase 0. Valid values: true, false.
 
 # ─────────────────────────────────────────
 # TASKS

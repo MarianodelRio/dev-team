@@ -9,8 +9,8 @@ Verify that the tests written in this PR actually catch real bugs — not just e
 
 ## When to invoke
 Invoked by review-coordinator, only when:
-- `require_mutation_tests: true` in the config snippet passed by the Orchestrator, OR
-- The task touches a **critical module** — defined concretely as any path listed in `critical_modules` in the config snippet passed by the Orchestrator (populated by `/bootstrap` from the Testing strategy in `design.md`). If that list is empty, fall back to the conventional critical set: auth, payments, ML inference, data integrity.
+- `require_mutation_tests: true` in the config snippet passed by the review-coordinator, OR
+- The task touches a **critical module** — defined concretely as any path listed in `critical_modules` in the config snippet passed by the review-coordinator (populated by `/bootstrap` from the Testing strategy in `design.md`). If that list is empty, fall back to the conventional critical set: auth, payments, ML inference, data integrity.
 
 Runs in parallel with other sub-agents.
 
@@ -22,7 +22,7 @@ Runs in parallel with other sub-agents.
 | `critical_modules` | List of folder/module paths that always require mutation testing |
 | `mutation_score_threshold` | Minimum acceptable mutation score (integer 0–100) |
 
-Do not read devteam.config.yml yourself — the Orchestrator passes these values inline as a config snippet.
+Do not read devteam.config.yml yourself — the review-coordinator passes these values inline as a config snippet.
 
 ## What this agent does
 

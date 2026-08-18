@@ -35,9 +35,11 @@ Each `/orchestrate` session is a coordinator that delegates to specialized sub-a
 | 1 — Analysis | Architect | Validates the task against current project state |
 | 2 — Planning | Planner | Produces a concrete implementation plan |
 | 3 — Coding | Coder | Implements in an isolated git worktree |
-| 4 — Review | code-quality, security, adversarial, smoke-tester, mutation-tester (parallel) | Full quality review |
+| 4 — Review | code-quality, security, adversarial, smoke-tester, mutation-tester, spec-coverage* (parallel) | Full quality review |
 
 The Advisor is available to any sub-agent for design decisions with genuine trade-offs.
+
+*spec-coverage runs when `spec_coverage_enabled: true` in `devteam.config.yml`. Advisory only — never blocks a PR.
 
 One human checkpoint: after analysis, before code. Everything else is autonomous.
 

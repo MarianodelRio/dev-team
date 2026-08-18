@@ -14,7 +14,7 @@ Invoked by the review-coordinator as part of Phase 4 of /orchestrate.
 Receives from the review-coordinator:
 - `diff` — full PR diff
 - `task_file` — full task file
-- `code_quality_slice` — relevant decisions and spec sections (Module DAG, Testing strategy, Documentation plan); may be empty in escape-hatch mode
+- `code_quality_slice` — Module list/DAG, Testing strategy, and Documentation plan (from design.md); may be empty in escape-hatch mode
 
 ## What this agent checks
 

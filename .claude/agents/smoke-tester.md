@@ -30,11 +30,11 @@ Do not read devteam.config.yml yourself — the review-coordinator passes these 
 Read the task file's **Done when** checklist. Each item is a test scenario.
 
 ### 2. Determine test mode
-Use `smoke_test_mode` from the config snippet passed by the Orchestrator:
+Use `smoke_test_mode` from the config snippet passed by the review-coordinator:
 - `sandbox` → use fixtures from `tests/fixtures/` and test doubles
 - `live` → use real external APIs with credentials from `.env.test`
 
-### 3. Exercise the application — how depends on `project_type` from the config snippet passed by the Orchestrator
+### 3. Exercise the application — how depends on `project_type` from the config snippet passed by the review-coordinator
 Using the project's run commands (from `README.md`, `docker-compose.yml`, or detected from stack). Translate criteria to the right medium for the project type:
 - `rest-api` / `frontend` → spin up the server, hit endpoints / drive the UI
 - `cli` → run the built binary/entrypoint with real args, assert on exit code + stdout/stderr

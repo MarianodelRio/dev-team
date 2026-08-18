@@ -79,6 +79,7 @@ Via prompt from the Orchestrator:
 - The absolute path of the worktree (`../project-T-XXX/`)
 - The full task file (to read allowed `folders:` and the "Done when" criteria)
 - Testing strategy section from design.md (coder_slice, passed inline by the Orchestrator — do not read design.md; the Orchestrator has already extracted what you need)
+- Retrospective memory (if provided): a `## Retrospective memory` block containing past lessons from `context/retrospectives/coder.md`. Read these before writing any code — treat them as a checklist of implementation patterns to apply or avoid, not as design constraints. The Signal quote in each lesson confirms the lesson is grounded in real prior work.
 
 ## Config dependencies
 
@@ -162,15 +163,7 @@ Affected files: [which ones]
 
 ## After completing implementation
 
-Append a `## Completed` section to the task file before your final commit:
-
-```markdown
-## Completed
-- What was implemented (summary of deliverables)
-- Deviations from plan: [any significant changes from the Planner's plan and why, or "None"]
-- Key decisions: [non-obvious decisions made during implementation, or "None"]
-- Dependencies added: [new external dependencies added to package.json/go.mod/requirements.txt/etc., or "None"]
-```
+Append `## Completed` to the task file before your final commit using the format and rules in `.claude/steering/coder-complete.md` (injected into your prompt at session start).
 
 If the plan requires significant changes to be viable, do NOT re-invoke the Planner. Proceed with the best viable approach and document all deviations in `## Completed` under 'Deviations from plan'.
 
