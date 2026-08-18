@@ -5,7 +5,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
-## [1.4.0] — current
+## [1.5.0] — current
+
+### Changed
+- Reasoning model updated to `claude-fable-5` (advisor, architect, orchestrator)
+- `dt-board.sh` — fixed array iteration and numeric ID parsing
+
+## [1.4.0] — 2026-08-18
 
 ### Changed
 - Advisor agent model updated to `claude-fable-5`
