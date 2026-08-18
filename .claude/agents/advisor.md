@@ -1,5 +1,5 @@
 ---
-model: claude-opus-4-8
+model: claude-fable-5
 ---
 
 # Advisor Agent

@@ -5,7 +5,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
-## [1.3.0] — current
+## [1.4.0] — current
+
+### Changed
+- Advisor agent model updated to `claude-fable-5`
+
+## [1.3.0] — 2026-08-18
 
 ### Added
 - Steering files (`.claude/steering/`) — scoped rule injection replacing monolithic `AGENTS.md`: `always.md` and `task-format.md` injected into every agent, `context-formats.md` into orchestrator/architect/coder/planner, `coder-complete.md` into coder only
