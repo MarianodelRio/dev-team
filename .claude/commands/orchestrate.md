@@ -29,11 +29,35 @@ CFG_MUTATION_SCORE_THRESHOLD=$(dt_config quality.mutation_score_threshold 80)
 CFG_SMOKE_TEST_MODE=$(dt_config quality.smoke_test_mode sandbox)
 CFG_PROJECT_TYPE=$(dt_config project.type unknown)
 CFG_PROJECT_STACK=$(dt_config project.stack "unknown")
-CFG_REVIEW_PROFILE=$(dt_config review.review_profile "standard")
+CFG_REVIEW_PROFILE=$(dt_config review.review_profile "auto")
 CFG_CMD_TEST=$(dt_config commands.test "")
 CFG_CMD_LINT=$(dt_config commands.lint "")
 CFG_CMD_TYPE_CHECK=$(dt_config commands.type_check "")
+CFG_SPEC_COVERAGE_ENABLED=$(dt_config quality.spec_coverage_enabled false)
+CFG_SPEC_COVERAGE_THRESHOLD=$(dt_config quality.spec_coverage_threshold 80)
+CFG_RETRO_ENABLED=$(dt_config memory.retrospective_memory_enabled true)
 ```
+
+Load steering content to pass to sub-agents:
+```bash
+STEERING_ALWAYS=$(cat .claude/steering/always.md 2>/dev/null || echo "")
+STEERING_TASK_FORMAT=$(cat .claude/steering/task-format.md 2>/dev/null || echo "")
+STEERING_CONTEXT_FORMATS=$(cat .claude/steering/context-formats.md 2>/dev/null || echo "")
+STEERING_CODER_COMPLETE=$(cat .claude/steering/coder-complete.md 2>/dev/null || echo "")
+```
+
+Read retrospective memory files once here and carry as variables into Phases 1–3:
+```bash
+RETRO_CODER=""
+RETRO_PLANNER=""
+RETRO_ARCHITECT=""
+if [[ "$CFG_RETRO_ENABLED" == "true" ]]; then
+  [[ -f context/retrospectives/coder.md ]] && RETRO_CODER=$(cat context/retrospectives/coder.md)
+  [[ -f context/retrospectives/planner.md ]] && RETRO_PLANNER=$(cat context/retrospectives/planner.md)
+  [[ -f context/retrospectives/architect.md ]] && RETRO_ARCHITECT=$(cat context/retrospectives/architect.md)
+fi
+```
+If a variable is empty (file does not exist or feature is disabled), omit the `## Retrospective memory` block entirely from that agent's prompt — do not pass an empty block.
 
 Check parallel task cap before selecting or claiming any task:
 ```bash
@@ -88,6 +112,10 @@ Read `spec.md` and extract:
 - `spec_sections`: module section(s) whose name corresponds to the task's `folders:` per design.md
 
 Launch the Architect as a sub-agent with:
+- Steering context (inline at the top of the prompt, before all other inputs):
+  - Content of `STEERING_ALWAYS`
+  - Content of `STEERING_TASK_FORMAT`
+  - Content of `STEERING_CONTEXT_FORMATS`
 - Full task file
 - `architect_slice` from context_packet
 - `spec_sections` from context_packet
@@ -96,6 +124,7 @@ Launch the Architect as a sub-agent with:
 - Open discoveries: read all `context/discoveries/T-YYY.md` files that exist across done and in-progress tasks; include only entries with `Status: open` (discoveries are cross-module alerts — do not filter by folder)
 - List of tasks in `tasks/done/` (what was implemented since this task was planned)
 - List of tasks in `tasks/in-progress/` (what is running in parallel)
+- Retrospective memory (architect lessons): `$RETRO_ARCHITECT` — inject verbatim as a `## Retrospective memory` block at the end of the prompt if non-empty; omit the block entirely if empty
 
 The Architect must respond:
 ```
@@ -163,12 +192,17 @@ Wait for explicit confirmation. If the user redirects or adjusts scope, incorpor
 ## PHASE 2 — Planning (Planner sub-agent)
 
 Launch the Planner as a background sub-agent with:
+- Steering context (inline at the top of the prompt, before all other inputs):
+  - Content of `STEERING_ALWAYS`
+  - Content of `STEERING_TASK_FORMAT`
+  - Content of `STEERING_CONTEXT_FORMATS`
 - Approved task file (with any adjustments)
 - `planner_slice` from context_packet
 - `spec_sections` from context_packet (same sections passed to Architect in Phase 1)
 - Relevant decisions: content from `context/decisions/T-YYY.md` files selected in Phase 1 (tasks with overlapping folders)
 - Open discoveries: OPEN entries from `context/discoveries/T-YYY.md` files selected in Phase 1
 - List of current files in the task's `folders:`
+- Retrospective memory (planner lessons): `$RETRO_PLANNER` — inject verbatim as a `## Retrospective memory` block at the end of the prompt if non-empty; omit the block entirely if empty
 
 Wait for result. The Planner returns the structured plan.
 
@@ -189,11 +223,17 @@ If it fails (another instance claimed it): go back to Phase 0 with a different t
 If successful: the script creates the branch, the worktree `../[project]-T-XXX/`, and records IN_PROGRESS on main.
 
 Launch the Coder as a background sub-agent with:
+- Steering context (inline at the top of the prompt, before all other inputs):
+  - Content of `STEERING_ALWAYS`
+  - Content of `STEERING_TASK_FORMAT`
+  - Content of `STEERING_CONTEXT_FORMATS`
+  - Content of `STEERING_CODER_COMPLETE`
 - The Planner's complete plan
 - Absolute path of the worktree: `../[project]-T-XXX/`
 - Full task file (folders:, Done when checklist)
 - `coder_slice` from context_packet (Testing strategy inline)
 - config: commands.test = `CFG_CMD_TEST`, commands.lint = `CFG_CMD_LINT`, commands.type_check = `CFG_CMD_TYPE_CHECK`
+- Retrospective memory (coder lessons): `$RETRO_CODER` — inject verbatim as a `## Retrospective memory` block at the end of the prompt if non-empty; omit the block entirely if empty
 - Do not read `devteam.config.yml` yourself — use only the config values provided above
 
 The Coder works exclusively in the worktree. The Orchestrator waits for its result.
@@ -249,10 +289,14 @@ PR_DIFF=$(cd ../[project]-T-XXX && git diff origin/main)
 ```
 
 Launch the `review-coordinator` sub-agent with:
+- Steering context (inline at the top of the prompt, before all other inputs):
+  - Content of `STEERING_ALWAYS`
+  - Content of `STEERING_TASK_FORMAT`
 - `pr_diff` — `$PR_DIFF` captured above
 - `task_file` — full task file
 - `decisions_context` — the relevant decisions and spec sections assembled during Phase 1
 - `code_quality_slice` from context_packet (Module list/DAG + Testing strategy + Documentation plan)
+- `spec_sections` from context_packet (the module sections extracted from spec.md in Phase 1; may be empty if spec.md is absent)
 - `config`:
   - `project_type`: CFG_PROJECT_TYPE
   - `project_stack`: CFG_PROJECT_STACK
@@ -260,6 +304,8 @@ Launch the `review-coordinator` sub-agent with:
   - `require_mutation_tests`: CFG_REQUIRE_MUTATION_TESTS
   - `critical_modules`: CFG_CRITICAL_MODULES
   - `mutation_score_threshold`: CFG_MUTATION_SCORE_THRESHOLD
+  - `spec_coverage_enabled`: CFG_SPEC_COVERAGE_ENABLED
+  - `spec_coverage_threshold`: CFG_SPEC_COVERAGE_THRESHOLD
 - `review_profile`: CFG_REVIEW_PROFILE
 - `touches_protected` — `true` if Phase 1 Architect reported protected files or contract changes; `false` otherwise
 - Do not read `devteam.config.yml` yourself — use only the config values provided above

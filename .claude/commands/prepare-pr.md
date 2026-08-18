@@ -65,7 +65,7 @@ If anything fails: report the specific error and stop. Do not fix behavioral fai
 
 ```bash
 source scripts/dt-common.sh
-CFG_REVIEW_PROFILE=$(dt_config review.review_profile "standard")
+CFG_REVIEW_PROFILE=$(dt_config review.review_profile "auto")
 CFG_PR_MODE=$(dt_config pr.mode "auto")
 CFG_BASE_BRANCH=$(dt_config git.base_branch "main")
 CFG_REQUIRE_MUTATION_TESTS=$(dt_config quality.require_mutation_tests "false")
@@ -73,6 +73,14 @@ CFG_CRITICAL_MODULES=$(dt_config quality.critical_modules "")
 CFG_MUTATION_SCORE_THRESHOLD=$(dt_config quality.mutation_score_threshold "80")
 CFG_SMOKE_TEST_MODE=$(dt_config quality.smoke_test_mode "docker")
 CFG_PROJECT_TYPE=$(dt_config project.type "")
+CFG_SPEC_COVERAGE_ENABLED=$(dt_config quality.spec_coverage_enabled "false")
+CFG_SPEC_COVERAGE_THRESHOLD=$(dt_config quality.spec_coverage_threshold "80")
+```
+
+Load steering content:
+```bash
+STEERING_ALWAYS=$(cat .claude/steering/always.md 2>/dev/null || echo "")
+STEERING_TASK_FORMAT=$(cat .claude/steering/task-format.md 2>/dev/null || echo "")
 ```
 
 ---
@@ -87,14 +95,24 @@ git diff --name-only origin/main
 
 Read `design.md` and extract `code_quality_slice` (three sections: Module DAG, Testing strategy, Documentation plan). If `design.md` is absent (escape-hatch mode for migrated tasks), set `code_quality_slice` to empty.
 
+If `$CFG_SPEC_COVERAGE_ENABLED` is `true` and `spec.md` exists:
+  Read `spec.md` and extract the spec sections for the task's modules (the module sections whose folders overlap with the task's `folders:` frontmatter). Set `SPEC_SECTIONS` to the Logic and Interface subsections of those modules. If no matching sections are found, set `SPEC_SECTIONS` to empty.
+Else:
+  Set `SPEC_SECTIONS` to empty.
+
 Launch the `review-coordinator` sub-agent with:
+- Steering context (inline at the top of the prompt, before all other inputs):
+  - Content of `STEERING_ALWAYS`
+  - Content of `STEERING_TASK_FORMAT`
 - `diff` — output of `git diff origin/main` from the feature branch
 - `task_file` — full task file
 - `context_slice` — empty (no Phase 1 context packet available in escape-hatch mode)
 - `code_quality_slice` — Module DAG + Testing strategy + Documentation plan from `design.md`; empty if `design.md` is absent
+- `spec_sections` — `$SPEC_SECTIONS` (empty if spec.md absent, spec_coverage_enabled: false, or no matching module sections)
 - `config`:
   - `smoke_test_mode`: `$CFG_SMOKE_TEST_MODE`, `project.type`: `$CFG_PROJECT_TYPE`
   - `require_mutation_tests`: `$CFG_REQUIRE_MUTATION_TESTS`, `critical_modules`: `$CFG_CRITICAL_MODULES`, `mutation_score_threshold`: `$CFG_MUTATION_SCORE_THRESHOLD`
+  - `spec_coverage_enabled`: `$CFG_SPEC_COVERAGE_ENABLED`, `spec_coverage_threshold`: `$CFG_SPEC_COVERAGE_THRESHOLD`
 - `review_profile` — `$CFG_REVIEW_PROFILE`
 - `touches_protected` — `true` if any file in the diff is a protected file or shared contract; `false` otherwise
 

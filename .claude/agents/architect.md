@@ -54,6 +54,9 @@ Maintains the task dependency graph in `plan.md` and validates module interface 
 - A contract that is hard to understand is a contract that will be misused —
   clarity is a correctness requirement
 
+### Retrospective memory
+When the Orchestrator injects a `## Retrospective memory` block, read it before producing the analysis. Each entry is a lesson grounded in a verbatim Signal quote from prior task context. Use the lessons to identify whether this task is at risk of repeating a known architectural failure mode.
+
 ### ADR creation
 An ADR is required when:
 - A new module boundary is established

@@ -5,7 +5,7 @@ model: claude-sonnet-4-6
 # Review Coordinator Agent
 
 ## Mission
-Manage the complete review pipeline for a PR. Runs 4 agents in parallel (code-quality, security, smoke-tester, mutation-tester). After all 4 complete, runs adversarial sequentially with their compact manifest. Return a single consolidated review report to the Orchestrator.
+Manage the complete review pipeline for a PR. Runs 2–5 agents in parallel (code-quality and security always; smoke-tester in full profile; mutation-tester when activated; spec-coverage when `config.spec_coverage_enabled: true`). After all parallel agents complete, runs adversarial sequentially with their compact manifest. Return a single consolidated review report to the Orchestrator.
 
 ## When to invoke
 Invoked by the Orchestrator in Phase 4 (after `dt-verify` passes and after the post-implementation rebase).
@@ -17,7 +17,8 @@ Also invoked by the Orchestrator running `/prepare-pr` in escape-hatch mode.
 |---|---|
 | `diff` | Full `git diff origin/main` output from the feature branch |
 | `task_file` | Full task file (Done when checklist, `folders:`, `outputs:`) |
-| `code_quality_slice` | Relevant decisions and spec sections assembled during Phase 1 (may be empty in escape-hatch mode) |
+| `decisions_context` | Relevant decisions assembled during Phase 1 (may be empty or labelled `context_slice` in escape-hatch mode) |
+| `code_quality_slice` | Module list/DAG + Testing strategy + Documentation plan (from design.md; may be empty in escape-hatch mode) |
 | `config.smoke_test_mode` | `sandbox` or `live` |
 | `config.project_type` | Value of `project.type` from `devteam.config.yml` |
 | `config.project_stack` | Value of `project.stack` from `devteam.config.yml` |
@@ -28,6 +29,9 @@ Also invoked by the Orchestrator running `/prepare-pr` in escape-hatch mode.
 | `touches_protected` | `true` if the diff includes protected files or shared contracts |
 | `commands.install` | Install command from `devteam.config.yml` (forwarded to smoke-tester) |
 | `commands.start` | Start command from `devteam.config.yml` (forwarded to smoke-tester) |
+| `spec_sections` | Full spec.md module sections for the task's modules; empty if spec.md absent or no matching modules |
+| `config.spec_coverage_enabled` | `true` or `false` |
+| `config.spec_coverage_threshold` | Integer 0–100 |
 
 ---
 
@@ -54,6 +58,9 @@ Record: `effective_profile: full | fast` and `profile_reason: [why]`.
 | smoke-tester | no | yes |
 | mutation-tester | no | conditional (see below) |
 | adversarial | no | yes |
+| spec-coverage | conditional | conditional |
+
+**Spec-coverage activation (both profiles):** run when `config.spec_coverage_enabled: true`. Independent of profile — it is text analysis, not code execution, so it runs even on the fast profile.
 
 **Mutation-tester activation (full profile only):** run when any of these is true:
 - `config.require_mutation_tests: true`
@@ -63,7 +70,9 @@ Record: `effective_profile: full | fast` and `profile_reason: [why]`.
 
 ## Phase 2 — Parallel review
 
-**Pre-flight check:** Confirm each sub-agent has a definition file in `.claude/agents/` before spawning: code-quality.md, security.md, adversarial.md, smoke-tester.md, mutation-tester.md.
+**Pre-flight check:** Confirm each sub-agent has a definition file in `.claude/agents/` before spawning: code-quality.md, security.md, adversarial.md, smoke-tester.md, mutation-tester.md. When `config.spec_coverage_enabled: true`, also confirm spec-coverage.md exists; if it does not, log a warning and skip spec-coverage for this run.
+
+**Steering forwarding:** The Orchestrator has injected `STEERING_ALWAYS` and `STEERING_TASK_FORMAT` into your prompt. Forward this content inline to each sub-agent you spawn — prepend it to each sub-agent's input.
 
 Spawn all active agents simultaneously (do not wait for one before launching others):
 
@@ -87,6 +96,12 @@ Spawn all active agents simultaneously (do not wait for one before launching oth
 - The full diff
 - `config.critical_modules`
 - `config.mutation_score_threshold`
+
+**spec-coverage** — pass (when `config.spec_coverage_enabled: true`):
+- `spec_sections` — the `spec_sections` received by the coordinator (full module sections; the agent focuses on Logic and Interface subsections)
+- `test_diff` — test files extracted from the full diff: filter the diff to keep only sections where the file path contains `/test`, `/tests/`, `/__tests__/`, or `/spec/` as a path component; or the filename starts with `test_`; or the filename ends with `_test.{ext}`, `.test.{ext}`, or `.spec.{ext}`. If no test files match, pass an empty string.
+- `task_file` — the full task file
+- `config.spec_coverage_threshold` — `config.spec_coverage_threshold`
 
 Collect all results before moving to Phase 3.
 
@@ -132,16 +147,33 @@ If not run:
 [MUT] NOT_RUN
 ```
 
+**From spec-coverage (when `config.spec_coverage_enabled: true`)** — one line per UNCOVERED or PARTIAL constraint:
+```
+[SCOV-{hash8}] {module_name}:spec — {constraint_text_50_chars} (UNCOVERED|PARTIAL) (severity: INFO)
+```
+Note: `{module_name}:spec` replaces the `file:line` format used by code and security findings, because spec coverage findings reference specification requirements, not code locations.
+
+Also capture overall verdict:
+```
+[SCOV-VERDICT] ADVISORY: X% (Y/Z covered) | WARN_LOW: X% (Y/Z covered) | NOT_APPLICABLE | NOT_RUN
+```
+If not run (spec_coverage_enabled: false):
+```
+[SCOV-VERDICT] NOT_RUN (spec_coverage_enabled: false)
+```
+
 The full manifest looks like this (example):
 ```
 [CQ-3a9f7c12] src/auth/login.ts:42 — bare catch swallows exceptions (severity: BLOCKER)
 [CQ-8b4d1e2f] src/auth/login.ts:67 — function exceeds 50 lines (severity: NITPICK)
 [SEC-c5f0a8b3] src/auth/token.ts:15 — JWT secret hardcoded (severity: BLOCKER)
 [SEC-d2e1f9c4] src/api/users.ts:88 — missing rate limit on endpoint (severity: WARNING)
+[SCOV-a1b2c3d4] auth:spec — When login fails, the system shall return... (UNCOVERED) (severity: INFO)
 [CQ-VERDICT] BLOCKED: 1 blocker | WARNINGS: 0
 [SEC-VERDICT] BLOCKED: 1 blocker | WARNINGS: 1
 [SMOKE] verdict: ALL PASS (3/3)
 [MUT] score: 82% (threshold: 80%) — STRONG
+[SCOV-VERDICT] WARN_LOW: 60% (3/5 covered)
 ```
 
 ---
@@ -150,7 +182,7 @@ The full manifest looks like this (example):
 
 Skip this phase entirely if `effective_profile: fast`.
 
-Extract all finding IDs from the manifest (CQ-{hash8}, SEC-{hash8} format).
+Extract all finding IDs from the manifest (CQ-{hash8}, SEC-{hash8}, SCOV-{hash8} format).
 
 Spawn `adversarial` with:
 - The full diff
@@ -197,11 +229,15 @@ Requested: [config value]
 ### Mutation Testing
 [Full mutation-tester verdict section verbatim, or "NOT RUN (fast profile or not activated)"]
 
+### Spec Coverage
+[Full spec-coverage verdict section verbatim, or "NOT RUN (spec_coverage_enabled: false)", or "NOT RUN (spec-coverage.md definition file not found)"]
+Advisory findings only — WARN_LOW does not contribute to the BLOCKED or WARNINGS ONLY verdict below.
+
 ### Adversarial
 [Full adversarial verdict section verbatim, or "NOT RUN (fast profile)"]
 
 ### Findings manifest
-[Complete compact manifest — all [CQ-{hash8}], [SEC-{hash8}], [SMOKE], [MUT], [ADV-{hash8}] lines, all VERDICT lines]
+[Complete compact manifest — all [CQ-{hash8}], [SEC-{hash8}], [SCOV-{hash8}], [SMOKE], [MUT], [ADV-{hash8}] lines, all VERDICT lines including [SCOV-VERDICT]]
 
 ### Overall verdict
 APPROVED — no blockers across all review agents
@@ -227,5 +263,6 @@ WARNINGS ONLY — no blockers; PR can open with warnings flagged:
 - **Never pass full agent outputs to adversarial** — pass only the compact manifest
 - **Never run mutation-tester outside its activation condition** — it is expensive
 - **Always include the full manifest** — the Orchestrator references finding IDs in PR bodies, blocker escalations, and retry messages to the Coder
-- **Manifest IDs are deterministic hashes** — generated as sha1(file_path + ':' + line_number + ':' + summary[0:20]) truncated to 8 hex characters; stable across re-runs without persistent state
+- **Manifest IDs are deterministic hashes** — generated as sha1(file_path + ':' + line_number + ':' + summary[0:20]) truncated to 8 hex characters; stable across re-runs without persistent state (SCOV hashes use module_name + ':spec:' + text[0:20] as the input)
+- **SCOV findings are advisory** — never let [SCOV-VERDICT] WARN_LOW affect the Overall verdict; BLOCKED and WARNINGS ONLY are determined by CQ, SEC, SMOKE, MUT, and ADV findings only
 - **Be fast** — parallel execution in Phase 2 is mandatory; sequential execution is a defect

@@ -22,6 +22,12 @@ Read:
 
 ## Step 2 — Assess complexity
 
+Load steering content:
+```bash
+STEERING_ALWAYS=$(cat .claude/steering/always.md 2>/dev/null || echo "")
+STEERING_CONTEXT_FORMATS=$(cat .claude/steering/context-formats.md 2>/dev/null || echo "")
+```
+
 Does the question involve:
 - Shared modules or contracts?
 - Changes to boundaries or dependencies?
@@ -37,11 +43,13 @@ Does the question involve:
 ## Step 3 — Launch sub-agents if applicable
 
 Architect (if it involves architecture):
+- Steering context (inline): Content of `STEERING_ALWAYS` and `STEERING_CONTEXT_FORMATS`
 - Read the relevant `context/decisions/T-XXX.md` files and pass their content as inline text — not as a file path
 - Input: the question + relevant modules + design.md + the inlined content of relevant context/decisions/ files
 - Expected output: architectural impact analysis, affected contracts, DAG risks
 
 Advisor (if there are decision trade-offs):
+- Steering context (inline): Content of `STEERING_ALWAYS`
 - Input: the question + Architect's analysis + project constraints
 - Expected output: options + trade-offs + opinionated recommendation
 

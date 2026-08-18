@@ -48,7 +48,8 @@ The PR review phase is absorbed into /orchestrate — the user no longer runs
   subfolders. See also: ADR 0003 (recorded after this decision).
 - The /done command and post-merge flow
 - All seven framework agents (architect, advisor, and the five review agents: code-quality,
-  security, adversarial, smoke-tester, mutation-tester)
+  security, adversarial, smoke-tester, mutation-tester) — a sixth optional reviewer
+  (`spec-coverage`) was added later; see Feature C in the post-ADR changelog.
 
 > **Editorial note:** This ADR was written on 2026-07-23. ADR 0003 (per-task context files,
 > dated 2026-08-05) superseded the flat-file context pattern described above. The reference

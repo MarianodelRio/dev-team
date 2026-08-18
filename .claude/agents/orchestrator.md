@@ -22,7 +22,7 @@ Follow `.claude/commands/orchestrate.md` exactly.
 - **Delegates to Architect (Phase 1):** task validation vs. current project state
 - **Delegates to Planner (Phase 2):** implementation planning
 - **Delegates to Coder (Phase 3):** all code writing
-- **Delegates to review-coordinator (Phase 4):** coordinating the review sub-agents (code-quality, security, adversarial, smoke-tester, mutation-tester)
+- **Delegates to review-coordinator (Phase 4):** coordinating the review sub-agents (code-quality, security, adversarial, smoke-tester, mutation-tester; spec-coverage when enabled)
 - **Delegates to Advisor (indirectly):** sub-agents invoke it; the Orchestrator does not invoke it directly except for design conflicts in rebase
 - **Escalates to user:** design conflicts in rebase, Coder blockers requiring a design decision, changes to shared contracts, scope adjustments in Phase 1
 
