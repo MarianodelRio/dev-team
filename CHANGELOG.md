@@ -5,7 +5,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
-## [1.2.0] — current
+## [1.3.0] — current
+
+### Added
+- Steering files (`.claude/steering/`) — scoped rule injection replacing monolithic `AGENTS.md`: `always.md` and `task-format.md` injected into every agent, `context-formats.md` into orchestrator/architect/coder/planner, `coder-complete.md` into coder only
+- `spec-coverage` reviewer — maps `spec.md` Logic+Interface constraints to tests in the PR diff; advisory only, never blocks; controlled by `spec_coverage_enabled` in config
+- `context/retrospectives/` — persistent lessons-learned memory per role (coder, planner, architect); extracted at `/done`, injected in Phase 0 of `/orchestrate`
+- `memory.retrospective_memory_enabled` and `spec_coverage_enabled` / `spec_coverage_threshold` options in `devteam.config.yml`
+
+### Changed
+- `AGENTS.md` slimmed down — content moved to steering files; now a lightweight cross-reference
+- `/done` extended to extract and persist retrospective lessons
+- `/orchestrate` Phase 0 injects retrospective memory into sub-agents
+- `/explore`, `/bootstrap`, `/prepare-pr`, `team-init` improved
+- `docs/adr/0002` updated
+
+## [1.2.0] — 2026-08-14
 
 ### Added
 - `AGENTS.md` — cross-cutting runtime reference injected into every agent session; replaces scattered inline rules across agent files
