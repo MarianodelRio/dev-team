@@ -82,6 +82,12 @@ sync_main
 # ISS-107: Read base branch from config instead of hardcoding "main".
 BASE_BRANCH=$(dt_config git.base_branch "main")
 
+ORIGIN_URL="$(git -C "$REPO_ROOT" remote get-url origin)"
+if [[ ! "$ORIGIN_URL" =~ github\.com ]]; then
+  die "origin remote is not a GitHub URL: $ORIGIN_URL — dt-pr requires a GitHub remote"
+fi
+REPO_SLUG="$(echo "$ORIGIN_URL" | sed 's/.*github\.com[:/]//; s/\.git$//')"
+
 # ── Create or accept the PR ──────────────────────────────────────────────────
 if [ -n "$BODY_FILE" ]; then
   command -v gh >/dev/null 2>&1 || die "gh CLI not found — install and authenticate with 'gh auth login'"
@@ -99,12 +105,13 @@ if [ -n "$BODY_FILE" ]; then
       --body-file "$BODY_FILE" \
       --head "$BRANCH" \
       --base "$BASE_BRANCH" \
-      --repo "$(git -C "$REPO_ROOT" remote get-url origin | sed 's/.*github\.com[:/]//; s/\.git$//')"
+      --repo "$REPO_SLUG"
   )"
   [ -n "$PR_URL" ] || die "gh pr create returned no URL — check 'gh auth status'"
 fi
 
 PR_NUMBER="$(echo "$PR_URL" | grep -oE '[0-9]+$')"
+[ -n "$PR_NUMBER" ] || die "could not extract PR number from URL: $PR_URL"
 ok "PR: #$PR_NUMBER — $PR_URL"
 
 # ── Update task and push to main ─────────────────────────────────────────────

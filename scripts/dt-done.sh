@@ -32,6 +32,7 @@ fi
 if [ -z "$PR_URL" ] || [ "$PR_URL" = "~" ]; then
   die "Task $ID has no PR URL set. Run dt-pr.sh first or check the pr: field."
 fi
+command -v gh >/dev/null 2>&1 || die "gh CLI not found — install and authenticate with 'gh auth login'"
 PR_STATE=$(gh pr view "$PR_URL" --json state -q '.state')
 if [[ "$PR_STATE" != "MERGED" ]]; then
   echo "ERROR: PR is $PR_STATE, not MERGED. Run /done only after merging."
@@ -46,13 +47,7 @@ mkdir -p "$REPO_ROOT/tasks/done"
 mv "$FILE" "$NEWFILE"
 git -C "$REPO_ROOT" add "$FILE" "$NEWFILE"
 
-# 2) Branch cleanup (silent if already deleted by GitHub auto-delete).
-if [ "$(dt_config workflow.cleanup_merged_branches)" = "true" ]; then
-  git -C "$REPO_ROOT" push origin --delete "$BRANCH" --quiet 2>/dev/null \
-    && ok "deleted origin/$BRANCH" || true
-fi
-
-# 3) Unblock dependents whose deps are now all done (stage only, ISS-053).
+# 2) Unblock dependents whose deps are now all done (stage only, ISS-053).
 UNBLOCKED=""
 for f in "$REPO_ROOT/tasks/blocked/"*.md; do
   [ -e "$f" ] || continue
@@ -69,7 +64,7 @@ for f in "$REPO_ROOT/tasks/blocked/"*.md; do
   UNBLOCKED="$UNBLOCKED $bid"
 done
 
-# 4) Single commit + push for all staged changes (ISS-053 + ISS-141).
+# 3) Single commit + push for all staged changes (ISS-053 + ISS-141).
 if [ -n "$UNBLOCKED" ]; then
   git -C "$REPO_ROOT" commit -m "done: $ID — merged $PR_URL — unblocked:$UNBLOCKED" --quiet
   ok "unblocked:$UNBLOCKED"
@@ -80,6 +75,12 @@ fi
 git -C "$REPO_ROOT" push origin main --quiet
 ok "$ID marked done"
 
+# 4) Branch cleanup (silent if already deleted by GitHub auto-delete).
+if [ "$(dt_config workflow.cleanup_merged_branches)" = "true" ]; then
+  git -C "$REPO_ROOT" push origin --delete "$BRANCH" --quiet 2>/dev/null \
+    && ok "deleted origin/$BRANCH" || true
+fi
+
 refresh_index
 # ISS-124: Rebuild the board index after marking done (best-effort).
-bash "$SCRIPT_DIR/dt-board.sh" --rebuild-index 2>/dev/null || true
+bash "$SCRIPT_DIR/dt-board.sh" --no-fetch 2>/dev/null || true

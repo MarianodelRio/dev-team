@@ -33,7 +33,9 @@ if [[ "$DO_PRINT" -eq 0 && -f "$DT_INDEX" ]]; then
   fi
 fi
 
-[ "$DO_FETCH" -eq 1 ] && git -C "$REPO_ROOT" fetch origin --quiet 2>/dev/null || true
+if [ "$DO_FETCH" -eq 1 ]; then
+  git -C "$REPO_ROOT" fetch origin --quiet 2>/dev/null || true
+fi
 
 # Remote feature/fix branches → used to mark claimed tasks.
 REMOTE_BRANCHES="$(git -C "$REPO_ROOT" branch -r 2>/dev/null | sed 's/^[[:space:]]*//' | grep -E 'origin/(feature|fix)/' || true)"
@@ -96,7 +98,14 @@ json_arr() { # space-separated ids → JSON array
 
 # Sanitise a scalar for embedding inside a JSON string: drop backslashes and
 # double quotes (frontmatter values are ids/urls/branches — no structure lost).
-js() { local v="${1//\\/}"; printf '%s' "${v//\"/}"; }
+js() {
+  local v="${1//\\/}"
+  v="${v//\"/}"
+  v="${v//$'\n'/}"
+  v="${v//$'\r'/}"
+  v="${v//$'\t'/ }"
+  printf '%s' "$v"
+}
 
 # ── critical_path_next: available + unclaimed, most unblocks, smallest id ─────
 # Extract numeric part of an ID (T-001 → 1, B-42 → 42) for numeric tiebreaking.

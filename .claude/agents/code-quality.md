@@ -22,6 +22,7 @@ Receives from the review-coordinator:
 - Only the folders listed in the task's `folders:` frontmatter were touched
 - Any out-of-scope changes are flagged (not necessarily blocked — may be justified)
 - Shared contracts untouched (or explicitly approved)
+  Note: The shared contracts list is not included in `code_quality_slice`. If this check cannot be performed, flag it as a limitation in the findings rather than asserting compliance.
 
 ### Architecture rules
 - No imports that violate the module DAG (the Module DAG section is provided in the review context as `code_quality_slice` — do not read design.md directly)
@@ -51,7 +52,7 @@ Receives from the review-coordinator:
 
 ### Code clarity
 - Function names describe what they do
-- No functions longer than ~50 lines
+- No functions longer than ~40 lines
 - No deeply nested conditionals (>3 levels)
 - Magic numbers replaced with named constants
 

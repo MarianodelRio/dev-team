@@ -27,6 +27,7 @@ if [ "$DRY" -eq 1 ]; then
 fi
 
 if [ -e "$WT" ]; then
+  git -C "$WT" fetch origin "$BRANCH" --quiet 2>/dev/null || true
   UNPUSHED=$(git -C "$WT" log "origin/${BRANCH}..HEAD" --oneline 2>/dev/null | wc -l | tr -d ' ')
   if [[ "$UNPUSHED" -gt 0 ]]; then
     echo "ERROR: $UNPUSHED unpushed commit(s) in worktree. Push first."

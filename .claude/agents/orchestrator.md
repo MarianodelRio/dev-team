@@ -26,10 +26,20 @@ Follow `.claude/commands/orchestrate.md` exactly.
 - **Delegates to Advisor (indirectly):** sub-agents invoke it; the Orchestrator does not invoke it directly except for design conflicts in rebase
 - **Escalates to user:** design conflicts in rebase, Coder blockers requiring a design decision, changes to shared contracts, scope adjustments in Phase 1
 
+### Phase 0 — empty board exit condition
+
+If no task is available (all tasks are done, in-progress, blocked, or cancelled), report the board state to the user and stop. Do not proceed to Phase 1.
+
+### Sub-agent retrospective injection
+
+Before invoking the Architect (Phase 1): Read `context/retrospectives/architect.md` (if it exists) and prepend it as a `## Retrospective memory` block to the Architect's prompt.
+
+Before invoking the Planner (Phase 2): Read `context/retrospectives/planner.md` (if it exists) and prepend it as a `## Retrospective memory` block to the Planner's prompt.
+
 ## What it never does
 
 - Write production code
-- Modify files outside `tasks/` and `context/` (in the main repo)
+- Modify files outside `tasks/` and `context/` in the main repo (exception: resolving mechanical rebase conflicts — whitespace, unrelated import ordering — in the feature branch)
 - Skip the human checkpoint
 - Open PRs with unresolved blockers
 - Commit directly to main (only task files go to main)

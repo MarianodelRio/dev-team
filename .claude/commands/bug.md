@@ -70,6 +70,7 @@ Create `tasks/available/B-XXX-[slug].md` with the complete diagnosis:
 ```yaml
 ---
 id: B-XXX
+phase: 0
 type: bug
 agent: [agent responsible for the module]
 depends_on: []

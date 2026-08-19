@@ -33,14 +33,14 @@ sync_main
 
 [ -e "$WT" ] && { git -C "$REPO_ROOT" worktree remove --force "$WT" 2>/dev/null && ok "removed worktree" || true; }
 
-if git -C "$REPO_ROOT" worktree list | grep -q "$BRANCH"; then
-  OLD_WORKTREE=$(git -C "$REPO_ROOT" worktree list | grep "$BRANCH" | awk '{print $1}')
+WT_LIST="$(git -C "$REPO_ROOT" worktree list)"
+if echo "$WT_LIST" | grep -qF "$BRANCH"; then
+  OLD_WORKTREE="$(echo "$WT_LIST" | grep -F "$BRANCH" | awk '{print $1}')"
   git -C "$REPO_ROOT" worktree remove --force "$OLD_WORKTREE" 2>/dev/null || true
 fi
 
 if [ "$KEEP" -eq 0 ]; then
   git -C "$REPO_ROOT" branch -D "$BRANCH" 2>/dev/null || true
-  git -C "$REPO_ROOT" push origin --delete "$BRANCH" --quiet 2>/dev/null && ok "deleted origin/$BRANCH" || true
 fi
 
 if [[ "$KEEP" -eq 1 ]]; then
@@ -58,6 +58,10 @@ git -C "$REPO_ROOT" add "$FILE" "$NEWFILE"
 git -C "$REPO_ROOT" commit -m "chore($ID): restart — reset to available" --quiet
 git -C "$REPO_ROOT" push origin main --quiet
 ok "$ID reset to available"
+
+if [ "$KEEP" -eq 0 ]; then
+  git -C "$REPO_ROOT" push origin --delete "$BRANCH" --quiet 2>/dev/null && ok "deleted origin/$BRANCH" || true
+fi
 echo "Task $ID is now available. Run: /orchestrate $ID"
 
 refresh_index

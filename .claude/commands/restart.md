@@ -74,7 +74,7 @@ Found: [what was found in Step 2]
 Options:
   A) Reset to available — move task back, delete the branch (any uncommitted work in the worktree is lost)
   B) Reset to available — move task back, keep the branch (someone can continue from it manually)
-  C) Abandon — cancel the task entirely (moves to blocked with a note)
+  C) Abandon — cancel the task entirely (moves to `tasks/cancelled/` — audit trail preserved)
   D) Abort — leave everything as is
 
 What would you like to do?
@@ -117,7 +117,7 @@ Branch feature/[slug] kept on origin — pick it up manually or let /orchestrate
 
 ---
 
-## Step 4C — Cancel (moves to blocked with a note)
+## Step 4C — Cancel (moves to `tasks/cancelled/`)
 
 See `/cancel` command for this flow.
 

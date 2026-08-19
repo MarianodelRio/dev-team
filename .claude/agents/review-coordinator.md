@@ -17,7 +17,6 @@ Also invoked by the Orchestrator running `/prepare-pr` in escape-hatch mode.
 |---|---|
 | `diff` | Full `git diff origin/main` output from the feature branch |
 | `task_file` | Full task file (Done when checklist, `folders:`, `outputs:`) |
-| `decisions_context` | Relevant decisions assembled during Phase 1 (may be empty or labelled `context_slice` in escape-hatch mode) |
 | `code_quality_slice` | Module list/DAG + Testing strategy + Documentation plan (from design.md; may be empty in escape-hatch mode) |
 | `config.smoke_test_mode` | `sandbox` or `live` |
 | `config.project_type` | Value of `project.type` from `devteam.config.yml` |
@@ -70,7 +69,7 @@ Record: `effective_profile: full | fast` and `profile_reason: [why]`.
 
 ## Phase 2 — Parallel review
 
-**Pre-flight check:** Confirm each sub-agent has a definition file in `.claude/agents/` before spawning: code-quality.md, security.md, adversarial.md, smoke-tester.md, mutation-tester.md. When `config.spec_coverage_enabled: true`, also confirm spec-coverage.md exists; if it does not, log a warning and skip spec-coverage for this run.
+**Pre-flight check:** Confirm each sub-agent has a definition file in `.claude/agents/` before spawning: code-quality.md, security.md, adversarial.md, smoke-tester.md, mutation-tester.md. If `code-quality.md` or `security.md` agent definitions are not found, halt the review immediately and return to the Orchestrator: `REVIEW BLOCKED — required agent definition missing: [filename]. Manual review required.` Do not proceed with a partial review. When `config.spec_coverage_enabled: true`, also confirm spec-coverage.md exists; if it does not, log a warning and skip spec-coverage for this run. When spec-coverage is skipped, add this line directly to the manifest: `[SCOV-VERDICT] NOT_RUN (spec-coverage.md definition file not found)`
 
 **Steering forwarding:** The Orchestrator has injected `STEERING_ALWAYS` and `STEERING_TASK_FORMAT` into your prompt. Forward this content inline to each sub-agent you spawn — prepend it to each sub-agent's input.
 
@@ -105,7 +104,7 @@ Spawn all active agents simultaneously (do not wait for one before launching oth
 
 Collect all results before moving to Phase 3.
 
-**Timeout handling:** If a sub-agent does not return within 10 minutes, include '[AGENT_NAME]: timed out — manual review required' in the report and continue with other results.
+**Timeout handling:** If a sub-agent returns an error or produces no output, treat it as a failed run and include `[AGENT_NAME]: failed — no output returned` in the manifest.
 
 ---
 
@@ -184,9 +183,9 @@ Skip this phase entirely if `effective_profile: fast`.
 
 Extract all finding IDs from the manifest (CQ-{hash8}, SEC-{hash8}, SCOV-{hash8} format).
 
-Spawn `adversarial` with:
-- The full diff
-- The full manifest from Phase 3
+Pass to adversarial: the full PR diff AND the compact findings manifest from all parallel agents. Spawn `adversarial` with:
+- The full PR diff
+- The compact findings manifest from Phase 3
 - This instruction appended to the adversarial agent's normal inputs:
   > "The following findings have already been reported — do not duplicate them: [comma-separated list of all finding IDs]. Find what they missed."
 
@@ -230,8 +229,7 @@ Requested: [config value]
 [Full mutation-tester verdict section verbatim, or "NOT RUN (fast profile or not activated)"]
 
 ### Spec Coverage
-[Full spec-coverage verdict section verbatim, or "NOT RUN (spec_coverage_enabled: false)", or "NOT RUN (spec-coverage.md definition file not found)"]
-Advisory findings only — WARN_LOW does not contribute to the BLOCKED or WARNINGS ONLY verdict below.
+[Spec Coverage verbatim output here]
 
 ### Adversarial
 [Full adversarial verdict section verbatim, or "NOT RUN (fast profile)"]
@@ -241,6 +239,9 @@ Advisory findings only — WARN_LOW does not contribute to the BLOCKED or WARNIN
 
 ### Overall verdict
 APPROVED — no blockers across all review agents
+  (Guard: only valid if all required agents — code-quality and security — returned actual results. If any required agent failed or produced no output, use BLOCKED below.)
+or
+BLOCKED — manual review required: [agent] did not return results.
 or
 BLOCKED — N total blockers requiring fixes:
   - [CQ-3a9f7c12] src/auth/login.ts:42 — bare catch swallows exceptions
@@ -265,4 +266,6 @@ WARNINGS ONLY — no blockers; PR can open with warnings flagged:
 - **Always include the full manifest** — the Orchestrator references finding IDs in PR bodies, blocker escalations, and retry messages to the Coder
 - **Manifest IDs are deterministic hashes** — generated as sha1(file_path + ':' + line_number + ':' + summary[0:20]) truncated to 8 hex characters; stable across re-runs without persistent state (SCOV hashes use module_name + ':spec:' + text[0:20] as the input)
 - **SCOV findings are advisory** — never let [SCOV-VERDICT] WARN_LOW affect the Overall verdict; BLOCKED and WARNINGS ONLY are determined by CQ, SEC, SMOKE, MUT, and ADV findings only
+- **Advisory findings only** — WARN_LOW does not contribute to the BLOCKED or WARNINGS ONLY verdict below
+- **Required agent guard** — an APPROVED verdict requires all required agents (code-quality, security) to have returned actual findings; if any required agent failed or returned no output, the Overall verdict must be BLOCKED
 - **Be fast** — parallel execution in Phase 2 is mandatory; sequential execution is a defect

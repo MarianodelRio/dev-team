@@ -29,10 +29,12 @@ CFG_MUTATION_SCORE_THRESHOLD=$(dt_config quality.mutation_score_threshold 80)
 CFG_SMOKE_TEST_MODE=$(dt_config quality.smoke_test_mode sandbox)
 CFG_PROJECT_TYPE=$(dt_config project.type unknown)
 CFG_PROJECT_STACK=$(dt_config project.stack "unknown")
-CFG_REVIEW_PROFILE=$(dt_config review.review_profile "auto")
+PROJECT_SLUG=$(dt_config project.name "project" | tr ' /' '__' | tr '[:upper:]' '[:lower:]')
+CFG_REVIEW_PROFILE=$(dt_config quality.review_profile "auto")
 CFG_CMD_TEST=$(dt_config commands.test "")
 CFG_CMD_LINT=$(dt_config commands.lint "")
 CFG_CMD_TYPE_CHECK=$(dt_config commands.type_check "")
+CFG_CMD_RUN=$(dt_config commands.run "")
 CFG_SPEC_COVERAGE_ENABLED=$(dt_config quality.spec_coverage_enabled false)
 CFG_SPEC_COVERAGE_THRESHOLD=$(dt_config quality.spec_coverage_threshold 80)
 CFG_RETRO_ENABLED=$(dt_config memory.retrospective_memory_enabled true)
@@ -74,7 +76,7 @@ Read `.dt-index.json` for all task-selection decisions below (`git fetch` was al
 
 Validate task existence before any other check:
 ```bash
-TASK_FILE=$(find tasks/ -name "${TASK_ID}.md" 2>/dev/null | head -1)
+TASK_FILE=$(find tasks/ -name "${TASK_ID}-*.md" 2>/dev/null | head -1)
 [[ -z "$TASK_FILE" ]] && { echo "ERROR: Task $TASK_ID not found in tasks/"; exit 1; }
 ```
 
@@ -120,7 +122,7 @@ Launch the Architect as a sub-agent with:
 - `architect_slice` from context_packet
 - `spec_sections` from context_packet
 - `plan.md`
-- Relevant decisions: read `context/decisions/T-YYY.md` for each task in `tasks/done/` whose `folders:` overlap with the current task's `folders:`. For in-progress tasks, do NOT read their `context/decisions/` files from main — those files only exist on their feature branches and are not yet in main. For in-progress tasks, read the task file itself for context.
+- Relevant decisions: read `context/decisions/[ID].md` (where ID is T-YYY or B-YYY) for each task in `tasks/done/` whose `folders:` overlap with the current task's `folders:`. For in-progress tasks, do NOT read their `context/decisions/` files from main — those files only exist on their feature branches and are not yet in main. For in-progress tasks, read the task file itself for context.
 - Open discoveries: read all `context/discoveries/T-YYY.md` files that exist across done and in-progress tasks; include only entries with `Status: open` (discoveries are cross-module alerts — do not filter by folder)
 - List of tasks in `tasks/done/` (what was implemented since this task was planned)
 - List of tasks in `tasks/in-progress/` (what is running in parallel)
@@ -220,7 +222,7 @@ bash scripts/dt-claim.sh T-XXX
 ```
 If it fails (another instance claimed it): go back to Phase 0 with a different task.
 
-If successful: the script creates the branch, the worktree `../[project]-T-XXX/`, and records IN_PROGRESS on main.
+If successful: the script creates the branch, the worktree `../$PROJECT_SLUG-T-XXX/`, and records IN_PROGRESS on main.
 
 Launch the Coder as a background sub-agent with:
 - Steering context (inline at the top of the prompt, before all other inputs):
@@ -229,7 +231,7 @@ Launch the Coder as a background sub-agent with:
   - Content of `STEERING_CONTEXT_FORMATS`
   - Content of `STEERING_CODER_COMPLETE`
 - The Planner's complete plan
-- Absolute path of the worktree: `../[project]-T-XXX/`
+- Absolute path of the worktree: `../$PROJECT_SLUG-T-XXX/`
 - Full task file (folders:, Done when checklist)
 - `coder_slice` from context_packet (Testing strategy inline)
 - config: commands.test = `CFG_CMD_TEST`, commands.lint = `CFG_CMD_LINT`, commands.type_check = `CFG_CMD_TYPE_CHECK`
@@ -240,7 +242,7 @@ The Coder works exclusively in the worktree. The Orchestrator waits for its resu
 
 If the Coder agent exits with failure or produces an unrecoverable error:
 1. Run `git worktree remove --force $WORKTREE_PATH` to clean up the worktree.
-2. Run `bash scripts/dt-claim.sh --release $TASK_ID` (or equivalent) to reset the task status back to available.
+2. Run `bash scripts/dt-restart.sh $TASK_ID` to reset the task status back to available.
 Do not leave orphaned worktrees; always clean up on Coder failure before exiting.
 
 If the Coder returns a BLOCKER:
@@ -254,7 +256,7 @@ If the Coder returns a BLOCKER:
 
 First: rebase.
 ```bash
-cd ../[project]-T-XXX
+cd ../$PROJECT_SLUG-T-XXX
 git fetch origin
 git rebase origin/main
 ```
@@ -277,7 +279,7 @@ If there are conflicts:
 
 Full verification before launching reviewers:
 ```bash
-bash scripts/dt-verify.sh --worktree ../[project]-T-XXX
+bash scripts/dt-verify.sh --worktree ../$PROJECT_SLUG-T-XXX
 ```
 If it fails: spawn a new Coder agent passing the verify error as explicit input context. Do not use SendMessage — the original Coder session has ended. The new Coder agent fixes the issue → verify again.
 
@@ -285,7 +287,7 @@ Determine whether the diff touches protected files or shared contracts (use the 
 
 Capture the PR diff for the review-coordinator:
 ```bash
-PR_DIFF=$(cd ../[project]-T-XXX && git diff origin/main)
+PR_DIFF=$(cd ../$PROJECT_SLUG-T-XXX && git diff origin/main)
 ```
 
 Launch the `review-coordinator` sub-agent with:
@@ -306,6 +308,7 @@ Launch the `review-coordinator` sub-agent with:
   - `mutation_score_threshold`: CFG_MUTATION_SCORE_THRESHOLD
   - `spec_coverage_enabled`: CFG_SPEC_COVERAGE_ENABLED
   - `spec_coverage_threshold`: CFG_SPEC_COVERAGE_THRESHOLD
+  - `commands.run`: CFG_CMD_RUN
 - `review_profile`: CFG_REVIEW_PROFILE
 - `touches_protected` — `true` if Phase 1 Architect reported protected files or contract changes; `false` otherwise
 - Do not read `devteam.config.yml` yourself — use only the config values provided above
@@ -351,7 +354,7 @@ Options:
 
 Wait for user response.
 - If option A chosen: spawn a new Coder agent with the specific direction plus all prior review findings as explicit input context. Apply fix and re-run verification.
-- If option B chosen: run `bash scripts/dt-cancel.sh $TASK_ID --reason "abandoned at checkpoint"` and exit.
+- If option B chosen: run `bash scripts/dt-cancel.sh $TASK_ID --delete-branch --reason "abandoned at checkpoint"` and exit.
 
 WARNING without any blocker: open PR with warnings prominently flagged in the PR body.
 CLEAN from all reviewers: proceed to open PR.
@@ -381,7 +384,7 @@ If `before_code` (default): skip this checkpoint and proceed immediately.
 
 Merges to main may have landed during the review phase. Rebase one last time:
 ```bash
-cd ../[project]-T-XXX
+cd ../$PROJECT_SLUG-T-XXX
 git fetch origin
 git rebase origin/main
 ```
@@ -392,7 +395,7 @@ If there are conflicts:
 
 After a clean rebase, run a quick verify to confirm nothing broke with the new changes from main:
 ```bash
-bash scripts/dt-verify.sh --worktree ../[project]-T-XXX
+bash scripts/dt-verify.sh --worktree ../$PROJECT_SLUG-T-XXX
 ```
 
 If verify fails: treat as a last-minute blocker — spawn a new Coder agent passing the verify error as explicit input context with budget 1 retry. Do not use SendMessage — the original Coder session has ended. Escalate to the user if still failing. Do not open the PR until clean.

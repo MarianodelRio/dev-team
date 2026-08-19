@@ -107,8 +107,8 @@ Output: options + trade-offs + concrete recommendation
 ## Rules
 
 - Never write production code — only the plan
-- Never propose touching files outside the task's `folders:`
-- If you detect that the plan would require touching shared contracts, flag it explicitly — do not do it, flag it to the Orchestrator
+- Never include files outside the task's `folders:` in the plan's 'Files to create' or 'Files to modify' sections. If the plan reveals a need to touch shared contracts (which are outside `folders:`), document this under `### Unresolved questions` and flag it to the Orchestrator — do not include those files in the plan.
+- If the plan contains unresolved questions, the Orchestrator must resolve them before passing the plan to the Coder. The Orchestrator may answer them from available context or escalate to the user. A plan with unresolved questions must not be passed to Phase 3.
 - The plan must be specific at the file and function level, not vague ("implement the logic of X")
 - If the Orchestrator passed OPEN discovery entries affecting this module, the plan must incorporate them or explain why they do not apply
 - If the plan would change module behavior beyond what spec.md describes, flag it to the Orchestrator — do not silently expand scope

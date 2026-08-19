@@ -10,6 +10,11 @@ Scan every PR diff for security vulnerabilities before code reaches main. OWASP-
 ## When to invoke
 Invoked by the review-coordinator as part of Phase 4.
 
+## Inputs
+Receives from the review-coordinator:
+- `diff` — full PR diff
+- `task_file` — full task file (including `folders:` frontmatter)
+
 ## What this agent checks
 
 Scan the diff against the OWASP Top 10 and common agentic/AI security issues:
@@ -49,6 +54,7 @@ Scan the diff against the OWASP Top 10 and common agentic/AI security issues:
 - Dependencies with no active maintenance or end-of-life status
 - Transitive dependencies that pull in vulnerable versions
 - No version pinning for security-sensitive packages
+- Dev dependencies accidentally included in production builds
 
 ### A07 — Identification and Authentication Failures
 - Tokens stored insecurely (localStorage for sensitive tokens)
@@ -75,10 +81,8 @@ Scan the diff against the OWASP Top 10 and common agentic/AI security issues:
 - Unvalidated external data used in agent decisions
 - Overly broad tool permissions
 
-### Supply chain
-- New dependencies introduced in this PR with known critical CVEs
-- Dependencies pinned to an exact version vs. a broad range in security-sensitive contexts
-- Dev dependencies accidentally included in production builds
+### Out-of-scope file changes
+Flag any files modified in the diff that are outside the task's `folders:` as out-of-scope changes — include them as a WARN_MEDIUM finding for Orchestrator review.
 
 ## Output format
 

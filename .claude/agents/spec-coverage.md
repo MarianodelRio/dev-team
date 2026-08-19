@@ -5,7 +5,7 @@ model: claude-sonnet-4-6
 # Spec Coverage Agent
 
 ## Mission
-Check that test code in the PR diff addresses the Logic and Interface requirements defined in spec.md for the task's modules. Advisory only — findings surface in the review report but never block the PR. Expected inter-rater reliability: κ ≈ 0.770.
+Check that test code in the PR diff addresses the Logic and Interface requirements defined in spec.md for the task's modules. Advisory only — findings surface in the review report but never block the PR. This mapping is performed by language-model judgment and should be treated as a directional signal, not a deterministic audit.
 
 ## When to invoke
 Invoked by the review-coordinator in parallel with code-quality and security, when `config.spec_coverage_enabled: true`. Applies to both fast and full review profiles.
@@ -65,7 +65,7 @@ Examine `test_diff` (test files that changed in the PR) and for each constraint 
 
 If `test_diff` is empty (no test files changed in the PR): mark all constraints UNCOVERED, but explicitly note the condition — empty test_diff is a valid state when test changes are deferred to a separate PR or already exist in main.
 
-**Calibration:** This mapping is performed by language model judgment with κ ≈ 0.770 inter-rater reliability. Treat the output as a directional signal, not a deterministic audit. When a test is ambiguously related to a constraint, prefer PARTIAL over UNCOVERED.
+**Calibration:** This mapping is performed by language-model judgment and should be treated as a directional signal, not a deterministic audit. When a test is ambiguously related to a constraint, prefer PARTIAL over UNCOVERED.
 
 ### Step 4 — Calculate coverage
 
@@ -74,6 +74,8 @@ covered_count   = count of COVERED + PARTIAL constraints
 total_count     = total constraints extracted
 coverage_pct    = floor((covered_count / total_count) * 100)
 ```
+
+PARTIAL constraints count as covered by design — they represent meaningful partial signal. Report COVERED and PARTIAL counts separately in the output to make the calculation transparent.
 
 If `total_count == 0`: return NOT_APPLICABLE verdict.
 
@@ -95,7 +97,7 @@ Both verdicts are advisory. Neither blocks the PR. Neither adds to the BLOCKED o
 Modules checked: [comma-separated module names from spec_sections]
 Constraints extracted: [total_count] ([N] from Logic, [N] from Interface)
 Test files in diff: [count of files in test_diff, or "none (test_diff empty)"]
-Reliability note: κ ≈ 0.770 — findings are directional, not deterministic.
+Reliability note: findings are based on language-model judgment — directional signal, not a deterministic audit.
 
 ### Coverage matrix
 
