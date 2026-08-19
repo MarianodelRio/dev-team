@@ -5,7 +5,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
-## [1.5.0] — current
+## [1.6.0] — current
+
+### Fixed
+- **Scripts** — 8 bug fixes: worktree path extraction in dt-cancel/dt-restart; remote branch deletion ordering in dt-done/dt-restart; stale `--rebuild-index` flag; false-negative in dt-ready (fetch before unpushed check); PR number validation in dt-pr; validate_id regex now accepts 1–3 digits (B-7, B-42); worktree path sanitization in dt-common; temp file cleanup trap in dt-claim; newline/tab escaping in dt-board
+- **Commands** — 9 fixes: config key corrections in orchestrate/prepare-pr (`quality.review_profile`, `quality.smoke_test_mode`); find pattern slug matching; reopen/refine/restart description corrections; bug task template missing phase field; add-task counting cancelled deps as satisfied; team-init auto_merge and model menu fixes
+- **Agents** — 12 fixes: orchestrator empty-board exit and retrospective injection; architect ADR placeholder and circular dependency protocol; planner contradicting folder rules; coder worktree exception and push failure path; advisor timing constraint removed; review-coordinator halt on missing agents and BLOCKED verdict for timeouts; security task_file input; adversarial full diff input; smoke-tester missing-fixtures error path; mutation-tester WEAK always BLOCKER; spec-coverage fabricated κ value replaced
+
+### Changed
+- `CLAUDE.md` updated: /reopen added to commands table, steering injection documented, PLANNED options noted
+- `devteam.config.yml`: `auto_merge` values quoted, `checkpoint_timeout_minutes` added
+
+## [1.5.0] — 2026-08-19
 
 ### Changed
 - Reasoning model updated to `claude-fable-5` (advisor, architect, orchestrator)
