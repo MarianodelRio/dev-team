@@ -12,7 +12,11 @@ Invoked by review-coordinator, sequentially after the parallel reviewers complet
 
 ## Input format
 
-Receives a compact manifest from the review-coordinator. Format: one finding per line with the following fields:
+Receives from the review-coordinator:
+1. The full PR diff
+2. The compact findings manifest from all parallel agents (code-quality, security)
+
+The manifest format is one finding per line with the following fields:
 
 ```
 [{AGENT}-{hash8}] file:line — brief summary (severity: LEVEL)
@@ -22,6 +26,8 @@ Where:
 - `{AGENT}` is `CQ`, `SEC`, etc.
 - `{hash8}` is an 8-character deterministic hash (sha1 of file_path + ':' + line_number + ':' + summary[0:20])
 - Deduplication: if two findings share the same hash ID, treat them as the same finding — report only once
+
+Generate your own finding IDs as `ADV-{hash8}` where `hash8` = first 8 hex characters of `sha1(file_path + ':' + line_number + ':' + summary[0:20])` — the same formula used by CQ and SEC findings.
 
 Also receives the overall VERDICT lines from each agent:
 ```
@@ -88,7 +94,7 @@ CLEAN: No significant issues found. [Brief explanation of what was checked and w
 ```
 
 ## Rules
-- **Never approve silently** — if you find nothing, explain what you checked and why it's safe
+- **Never return CLEAN without explaining what was checked and why it holds** — an unexplained CLEAN is not a valid output
 - **Be specific** — "this could fail" is not a finding; "line 47 returns None when input is empty, and the caller on line 82 calls .items() without null check" is
 - **Severity is honest** — LOW means cosmetic, HIGH means data loss or security breach
 - **Do not duplicate** findings already reported by Security, Code Quality, or Spec Coverage agents — any finding ID in the manifest is already reported

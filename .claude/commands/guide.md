@@ -19,7 +19,7 @@ Read (using `.dt-index.json` for status/progress, files for detail):
 - the primary doc file from the Documentation plan (`docs/api.md`, `docs/cli.md`, `docs/usage.md`, …) — available surface
 - All files in `context/decisions/` — key decisions made per task
 - `README.md` — setup instructions
-- `devteam.config.yml` — stack and configuration; read `commands.install`, `commands.start`, and `commands.test` for the "Run locally" section
+- `devteam.config.yml` — stack and configuration; read `commands.run` and `commands.test` for the "Run locally" section
 - Any `docker-compose.yml` or startup scripts
 
 ---
@@ -89,9 +89,8 @@ Last updated: [date based on most recent done task]
 
 ### Run locally
 
-Install:  [commands.install from devteam.config.yml — or "— not configured (set commands.install in devteam.config.yml)"]
-Start:    [commands.start from devteam.config.yml  — or "— not configured (set commands.start in devteam.config.yml)"]
-Test:     [commands.test from devteam.config.yml   — or "— not configured (set commands.test in devteam.config.yml)"]
+Start:    [commands.run from devteam.config.yml  — or "— not configured (set commands.run in devteam.config.yml)"]
+Test:     [commands.test from devteam.config.yml  — or "— not configured (set commands.test in devteam.config.yml)"]
 
 ---
 

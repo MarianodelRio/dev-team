@@ -82,17 +82,7 @@ If the value is not empty and not one of the three valid options, print:
 ⚠️  WARNING: review_profile '[value]' is not valid. Accepted values: full | fast | auto
 ```
 
-**`git.base_branch`** must exist on the remote:
-```bash
-BASE_BRANCH=$(grep 'base_branch:' devteam.config.yml | awk '{print $2}')
-git ls-remote --heads origin "$BASE_BRANCH"
-```
-If the `git ls-remote` command returns no output (branch not found on remote), print:
-```
-⚠️  WARNING: git.base_branch '[value]' does not exist on remote origin. Check devteam.config.yml.
-```
-
-Skip both checks if the respective field is empty, `~`, or absent from the config.
+Skip this check if the field is empty, `~`, or absent from the config.
 
 ---
 
@@ -170,8 +160,8 @@ Advisor (uses the reasoning model — more powerful but slower)
   Current: [value]  →  keep or change?
 
 Auto-merge (merge low-risk PRs automatically once checks pass)
-  off      — you merge every PR manually  ← recommended default
-  low_risk — auto-merge only clean, small, non-contract PRs (needs pr_mode: automatic)
+  off — you merge every PR manually  ← recommended default
+  on  — auto-merge after all checks pass (needs pr_mode: automatic)
   Current: [value]  →  keep or change?
 ```
 
@@ -228,9 +218,10 @@ Three model slots, each can be any Claude model or an alternative:
   Current: [value]
 
 Available Claude models:
-  claude-opus-4-8    — most capable, slower, expensive
-  claude-sonnet-4-6  — balanced, recommended for implementation
-  claude-haiku-4-5   — fastest, cheapest, good for simple tasks
+  claude-fable-5     — default reasoning model (current default for Orchestrator, Architect)
+  claude-opus-4-8    — high-capability alternative
+  claude-sonnet-4-6  — balanced
+  claude-haiku-4-5   — fastest
 
 Alternatives (if you use other providers):
   openai/gpt-4o | openai/gpt-4o-mini | google/gemini-2.5-pro | local/ollama:[model]

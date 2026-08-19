@@ -102,10 +102,9 @@ Apply in this order:
 3. Write to `context/discoveries/T-XXX.md` for each `in-progress` task. **If the file already exists, append a new dated section rather than replacing existing content — prior discoveries must not be lost:**
    ```markdown
    ## Discovery [YYYY-MM-DD] from /refine
-
-   ## OPEN — [date] [/refine → T-XXX]
-   spec.md for [module] was updated: [summary of change]
-   Review your implementation against the new spec before marking READY_FOR_PR.
+   **Alert:** spec.md for [module] was updated: [summary of change]
+   **Impact:** [specific impact on this task's implementation]
+   **Required action:** Review your implementation against the updated spec before submitting your PR.
    Status: open
    ```
 4. Create retrofit tasks in `tasks/available/` or `tasks/blocked/` as needed

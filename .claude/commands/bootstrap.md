@@ -447,7 +447,7 @@ Generate batteries based on `devteam.config.yml`:
   The specific commands come from `devteam.config.yml` `commands:` section; fall back
   to auto-detected commands if empty.
 - If `env_example: true` → generate `.env.example`
-- If `contributing: true` → generate `CONTRIBUTING.md`
+- If `contributing: true` → generate `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`
 - If `security_policy: true` → generate `SECURITY.md`
 - If `github_templates: true` → generate `.github/PULL_REQUEST_TEMPLATE.md` and issue templates
 

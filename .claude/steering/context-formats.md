@@ -1,6 +1,6 @@
 ---
 inclusion: agentMatch
-agents: [orchestrator, architect, coder, planner]
+agents: [orchestrator, architect, coder, planner, review-coordinator]
 ---
 
 # Context file formats
@@ -41,6 +41,7 @@ When `/refine` or `/bug` writes a discovery to alert an **in-progress task** abo
 **Alert:** [what changed and how it affects this task]
 **Impact:** [specific impact on T-XXX's implementation]
 **Required action:** [what the agent working on this task should do differently]
+Status: open
 ```
 
 **Agents do not read `context/` directly.** The Orchestrator pre-selects relevant content from `context/decisions/` (folder-filtered) and `context/discoveries/` (open entries only) and passes it in your prompt.

@@ -65,14 +65,14 @@ If anything fails: report the specific error and stop. Do not fix behavioral fai
 
 ```bash
 source scripts/dt-common.sh
-CFG_REVIEW_PROFILE=$(dt_config review.review_profile "auto")
-CFG_PR_MODE=$(dt_config pr.mode "auto")
-CFG_BASE_BRANCH=$(dt_config git.base_branch "main")
+CFG_REVIEW_PROFILE=$(dt_config quality.review_profile "auto")
+CFG_PR_MODE=$(dt_config workflow.pr_mode "automatic")
 CFG_REQUIRE_MUTATION_TESTS=$(dt_config quality.require_mutation_tests "false")
 CFG_CRITICAL_MODULES=$(dt_config quality.critical_modules "")
 CFG_MUTATION_SCORE_THRESHOLD=$(dt_config quality.mutation_score_threshold "80")
-CFG_SMOKE_TEST_MODE=$(dt_config quality.smoke_test_mode "docker")
+CFG_SMOKE_TEST_MODE=$(dt_config quality.smoke_test_mode "sandbox")
 CFG_PROJECT_TYPE=$(dt_config project.type "")
+CFG_PROJECT_STACK=$(dt_config project.stack "")
 CFG_SPEC_COVERAGE_ENABLED=$(dt_config quality.spec_coverage_enabled "false")
 CFG_SPEC_COVERAGE_THRESHOLD=$(dt_config quality.spec_coverage_threshold "80")
 ```
@@ -110,7 +110,7 @@ Launch the `review-coordinator` sub-agent with:
 - `code_quality_slice` — Module DAG + Testing strategy + Documentation plan from `design.md`; empty if `design.md` is absent
 - `spec_sections` — `$SPEC_SECTIONS` (empty if spec.md absent, spec_coverage_enabled: false, or no matching module sections)
 - `config`:
-  - `smoke_test_mode`: `$CFG_SMOKE_TEST_MODE`, `project.type`: `$CFG_PROJECT_TYPE`
+  - `smoke_test_mode`: `$CFG_SMOKE_TEST_MODE`, `project.type`: `$CFG_PROJECT_TYPE`, `project_stack`: `$CFG_PROJECT_STACK`
   - `require_mutation_tests`: `$CFG_REQUIRE_MUTATION_TESTS`, `critical_modules`: `$CFG_CRITICAL_MODULES`, `mutation_score_threshold`: `$CFG_MUTATION_SCORE_THRESHOLD`
   - `spec_coverage_enabled`: `$CFG_SPEC_COVERAGE_ENABLED`, `spec_coverage_threshold`: `$CFG_SPEC_COVERAGE_THRESHOLD`
 - `review_profile` — `$CFG_REVIEW_PROFILE`

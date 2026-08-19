@@ -34,7 +34,7 @@ die()  { err "$*"; exit 1; }
 # safe to interpolate into paths and branch names.
 validate_id() {
   local id="$1"
-  [[ "$id" =~ ^[TB]-[0-9]{3}$ ]] || die "invalid id '$id' (expected T-NNN or B-NNN)"
+  [[ "$id" =~ ^[TB]-[0-9]{1,3}$ ]] || die "invalid id '$id' (expected T-NNN or B-NNN)"
 }
 
 # ── Config reader (flat, two-level YAML) ─────────────────────────────────────
@@ -74,7 +74,10 @@ dt_project_name() {
   basename "$REPO_ROOT"
 }
 
-dt_worktree_path() { echo "$REPO_ROOT/../$(dt_project_name)-$1"; }
+dt_worktree_path() {
+  local name; name="$(dt_project_name | tr ' /' '__')"
+  echo "$REPO_ROOT/../${name}-$1"
+}
 
 # ── Task file discovery ──────────────────────────────────────────────────────
 TASK_FOLDERS=(
@@ -195,7 +198,7 @@ validate_task_body() {
 
 # ── main sync helper ─────────────────────────────────────────────────────────
 sync_main() {
-  git -C "$REPO_ROOT" checkout main || { echo "ERROR: Could not checkout main"; exit 1; }
+  git -C "$REPO_ROOT" checkout main || { echo "ERROR: Could not checkout main" >&2; exit 1; }
   git -C "$REPO_ROOT" pull origin main --ff-only \
-    || { echo "ERROR: Could not pull main — resolve divergence manually before continuing"; exit 1; }
+    || { echo "ERROR: Could not pull main — resolve divergence manually before continuing" >&2; exit 1; }
 }

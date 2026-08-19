@@ -10,7 +10,7 @@ Verify that the tests written in this PR actually catch real bugs — not just e
 ## When to invoke
 Invoked by review-coordinator, only when:
 - `require_mutation_tests: true` in the config snippet passed by the review-coordinator, OR
-- The task touches a **critical module** — defined concretely as any path listed in `critical_modules` in the config snippet passed by the review-coordinator (populated by `/bootstrap` from the Testing strategy in `design.md`). If that list is empty, fall back to the conventional critical set: auth, payments, ML inference, data integrity.
+- The task touches a **critical module** — defined concretely as any path listed in `critical_modules` in the config snippet passed by the review-coordinator (populated by `/bootstrap` from the Testing strategy in `design.md`).
 
 Runs in parallel with other sub-agents.
 
@@ -98,13 +98,13 @@ mutation score = (killed mutations / total mutations) × 100
 ### Verdict
 STRONG (≥{mutation_score_threshold}%): Tests catch real bugs — mutation score: X%
 or
-WEAK (<{mutation_score_threshold}%): [N] mutations survived — PR [blocked if threshold not met / warning if optional]
+WEAK (<{mutation_score_threshold}%): [N] mutations survived — BLOCKER. Mutation testing is only activated for critical modules or when `require_mutation_tests: true` — if activated, a WEAK score always blocks the PR.
 Threshold: [mutation_score_threshold from config snippet]%
 ```
 
 ## Rules
 - **Only mutate new/changed code** in this PR — don't audit the entire codebase
 - **Minimal mutations** — one change at a time, not multi-line rewrites
-- **Revert all mutations** after testing — leave the code exactly as it was
+- **Revert all mutations** after testing — leave the code exactly as it was. If a mutation cannot be reverted, stop immediately, restore from git (`git checkout -- <file>`), and mark the affected function as UNTESTED in the report. Do not continue with additional mutations while a revert is pending.
 - **Practical suggestions** — every survived mutation must have a concrete suggested assertion
 - **Don't block for minor survivors** on non-critical modules if overall score is above threshold

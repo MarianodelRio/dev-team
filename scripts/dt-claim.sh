@@ -12,7 +12,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/dt-common.sh"
 
 ID=""; DRY=0
-for a in "$@"; do case "$a" in --dry-run) DRY=1 ;; *) ID="$a" ;; esac; done
+for a in "$@"; do
+  case "$a" in
+    --dry-run) DRY=1 ;;
+    T-*|B-*) ID="$a" ;;
+    *) die "unknown argument: $a" ;;
+  esac
+done
 [ -n "$ID" ] || die "usage: dt-claim.sh T-XXX [--dry-run]"
 validate_id "$ID"
 
@@ -37,8 +43,9 @@ sync_main
 
 # 1) Atomic lock — create the remote branch without switching the checkout.
 _CLAIM_ERR_TMP="$(mktemp)"
+trap 'rm -f "$_CLAIM_ERR_TMP"' EXIT
 if ! git -C "$REPO_ROOT" push origin "main:refs/heads/$BRANCH" --quiet 2>"$_CLAIM_ERR_TMP"; then
-  if grep -q "already exists" "$_CLAIM_ERR_TMP" 2>/dev/null; then
+  if grep -qiE "already exists|rejected" "$_CLAIM_ERR_TMP" 2>/dev/null; then
     rm -f "$_CLAIM_ERR_TMP"
     echo "CLAIM_RESULT=already_claimed"
     die "$ID already claimed (branch push lost the race) — pick another task"

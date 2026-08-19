@@ -48,6 +48,7 @@ sync_main
 if [[ "$CURRENT_STATUS" == "pr-open" ]]; then
   PR_URL="$(task_field "$FILE" pr)"
   if [[ -n "$PR_URL" && "$PR_URL" != "~" ]]; then
+    command -v gh >/dev/null 2>&1 || die "gh CLI not found — install and authenticate with 'gh auth login'"
     gh pr close "$PR_URL" --comment "Task $ID cancelled: ${REASON:-not specified}" && ok "closed PR $PR_URL" || true
   fi
 fi
@@ -56,7 +57,10 @@ fi
 
 if [[ "$CURRENT_STATUS" == "in-progress" ]]; then
   if [[ -n "$BRANCH" ]]; then
-    BRANCH_WT=$(git -C "$REPO_ROOT" worktree list --porcelain | grep -B1 "branch refs/heads/$BRANCH" | head -1 | awk '{print $2}')
+    BRANCH_WT=$(git -C "$REPO_ROOT" worktree list --porcelain \
+      | grep -B2 -F "branch refs/heads/$BRANCH" \
+      | grep '^worktree ' \
+      | awk '{print $2}')
     [[ -n "$BRANCH_WT" ]] && git -C "$REPO_ROOT" worktree remove --force "$BRANCH_WT" 2>/dev/null || true
   fi
 fi

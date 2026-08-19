@@ -31,11 +31,11 @@ Read the task file's **Done when** checklist. Each item is a test scenario.
 
 ### 2. Determine test mode
 Use `smoke_test_mode` from the config snippet passed by the review-coordinator:
-- `sandbox` → use fixtures from `tests/fixtures/` and test doubles
+- `sandbox` → use fixtures from `tests/fixtures/` and test doubles. If `smoke_test_mode: sandbox` and `tests/fixtures/` does not exist or is empty, return `BLOCKED: sandbox mode requires test fixtures in tests/fixtures/ — directory not found or empty.`
 - `live` → use real external APIs with credentials from `.env.test`
 
 ### 3. Exercise the application — how depends on `project_type` from the config snippet passed by the review-coordinator
-Using the project's run commands (from `README.md`, `docker-compose.yml`, or detected from stack). Translate criteria to the right medium for the project type:
+Use `commands.install` and `commands.run` (or `commands.start`) as provided by the review-coordinator. If these are empty or null, return `BLOCKED: missing run commands — review-coordinator must provide commands.run.` Translate criteria to the right medium for the project type:
 - `rest-api` / `frontend` → spin up the server, hit endpoints / drive the UI
 - `cli` → run the built binary/entrypoint with real args, assert on exit code + stdout/stderr
 - `library` → import the package in a throwaway script and call its public API
@@ -102,10 +102,13 @@ docker compose down
 ALL PASS — smoke tests green
 or
 BLOCKED: [N] criteria failed — PR cannot open until fixed
+or
+BLOCKED: application failed to start — [error summary]
 ```
 
 ## Rules
 - **Never fake results** — if the app won't start, report that clearly
+- **If the application fails to start, return BLOCKED immediately** — do not attempt to run acceptance criteria
 - **Test the real acceptance criteria** — don't invent tests not in the task file
 - **For external APIs in sandbox mode**: use the fixtures in `tests/fixtures/` — never make real API calls in sandbox mode
 - **For live mode**: use credentials from `.env.test` only — never production credentials

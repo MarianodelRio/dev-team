@@ -88,7 +88,7 @@ After the script completes, clear the `branch:` field in the moved task file so 
 branch: ~
 ```
 
-Then stage and commit this change to main alongside the done status update (or as a follow-up commit if the script already pushed).
+After the script completes, clear the `branch:` field in the task file and make a follow-up commit to main.
 
 ---
 

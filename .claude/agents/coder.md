@@ -76,7 +76,7 @@ Invoked by the Orchestrator in Phase 3, after receiving the plan from the Planne
 
 Via prompt from the Orchestrator:
 - The Planner's complete plan
-- The absolute path of the worktree (`../project-T-XXX/`)
+- The absolute path of the worktree (e.g., `/Users/dev/project-T-001-auth/` — always absolute, never relative)
 - The full task file (to read allowed `folders:` and the "Done when" criteria)
 - Testing strategy section from design.md (coder_slice, passed inline by the Orchestrator — do not read design.md; the Orchestrator has already extracted what you need)
 - Retrospective memory (if provided): a `## Retrospective memory` block containing past lessons from `context/retrospectives/coder.md`. Read these before writing any code — treat them as a checklist of implementation patterns to apply or avoid, not as design constraints. The Signal quote in each lesson confirms the lesson is grounded in real prior work.
@@ -93,7 +93,7 @@ The Orchestrator injects these as `CFG_CMD_TEST`, `CFG_CMD_LINT`, `CFG_CMD_TYPE_
 
 ## All work happens in the worktree
 
-Never modify files in the main repo.
+Never modify files in the main repo. Exception: `context/discoveries/T-XXX.md` in the main repo may be written when a cross-module issue is found. This is part of the coordination layer, not the implementation.
 
 ## Implementation protocol
 
@@ -119,13 +119,8 @@ Never modify files in the main repo.
      needs to understand your code's contract
    - Follow the test types from the Testing strategy passed by the Orchestrator in the prompt
 4. For fixtures and test doubles: use the location defined in the Testing strategy (`tests/fixtures/`), never make real network calls in unit tests
-5. To read decisions from other completed tasks for context, use:
-   ```bash
-   git fetch origin main
-   git show origin/main:context/decisions/T-XXX.md 2>/dev/null || echo "No decisions yet"
-   ```
-6. Note any non-obvious decisions in the `## Completed` section you will append to the task file (see "After completing implementation" below) — do NOT write directly to `context/decisions/`; the Orchestrator moves that content to main after merge
-7. Write to `context/discoveries/T-XXX.md` if you find something that affects another module — do NOT touch that module (create the file if it does not exist)
+5. Note any non-obvious decisions in the `## Completed` section you will append to the task file (see "After completing implementation" below) — do NOT write directly to `context/decisions/`; the Orchestrator moves that content to main after merge
+6. Write to `context/discoveries/T-XXX.md` if you find something that affects another module — do NOT touch that module (create the file if it does not exist)
 
 ## Verification (everything must pass before reporting done)
 
@@ -143,6 +138,8 @@ git add [specific files — never git add -A]
 git commit -m "T-XXX: [short description of what was implemented]"
 git push origin feature/T-XXX-short-slug
 ```
+
+If `git push` fails, stop immediately. Return a BLOCKER to the Orchestrator: `BLOCKER — T-XXX / Type: git push failed / Situation: [paste the git error] / Recommendation: Check branch protection, auth, and non-fast-forward status before retrying.`
 
 ## Invoking the Advisor
 

@@ -98,7 +98,7 @@ If there's a problem, explain it and propose a fix.
 ## Step 5 — Create the task file
 
 Determine placement:
-- If `depends_on` is empty or all deps are `done` → `tasks/available/`
+- If `depends_on` is empty or all deps are in `tasks/done/` or `tasks/cancelled/` → `tasks/available/`
 - Otherwise → `tasks/blocked/`
 
 Create `tasks/[folder]/T-XXX-[slug].md`:

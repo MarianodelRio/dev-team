@@ -6,7 +6,8 @@ Move a task from `pr-open` back to `available` after a PR was rejected or closed
 
 1. Validate the task exists and is in `pr-open` state.
    ```bash
-   TASK_FILE=$(find tasks/pr-open -name "${TASK_ID}.md" 2>/dev/null | head -1)
+   source scripts/dt-common.sh
+   TASK_FILE=$(find tasks/pr-open -name "${TASK_ID}-*.md" 2>/dev/null | head -1)
    [[ -z "$TASK_FILE" ]] && { echo "ERROR: Task $TASK_ID is not in pr-open state."; exit 1; }
    ```
 
@@ -23,7 +24,7 @@ Move a task from `pr-open` back to `available` after a PR was rejected or closed
    - Set `status: available`
    - Set `branch: ~`
    - Set `pr: ~`
-   - Move the file: `mv "tasks/pr-open/$TASK_ID.md" "tasks/available/$TASK_ID.md"`
+   - Move the file: `mv "$TASK_FILE" "tasks/available/$(basename "$TASK_FILE")"`
 
 4. Push to main:
    ```bash
