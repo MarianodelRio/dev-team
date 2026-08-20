@@ -164,6 +164,14 @@ Affected files: [which ones]
 
 Append `## Completed` to the task file before your final commit using the format and rules in `.claude/steering/coder-complete.md` (injected into your prompt at session start).
 
+Locate that file first — do not assume its path. The task file in your prompt was read from `main`, and `main` moves it between `tasks/*/` folders as the task advances:
+
+```bash
+git ls-files 'tasks/*/T-XXX.md'
+```
+
+Append to the path that prints, in place. Never create the task file at another path and never move it: `main` owns those folder moves, and a second copy at the folder `main` is using becomes an add/add conflict at the review rebase. If nothing prints, return a BLOCKER instead of creating the file.
+
 If the plan requires significant changes to be viable, do NOT re-invoke the Planner. Proceed with the best viable approach and document all deviations in `## Completed` under 'Deviations from plan'.
 
 If a new external dependency is required, add it to the project's dependency manifest (package.json/go.mod/requirements.txt/etc.) and document it in `## Completed` under 'Dependencies added'.
@@ -174,6 +182,7 @@ If a new external dependency is required, add it to the project's dependency man
 - Never modify shared contracts without explicit Orchestrator approval
 - Never use `git add -A` or `git add .` — specific files only
 - Never commit to main — only to the feature branch in the worktree
+- Never create or move the task file — locate it with `git ls-files 'tasks/*/T-XXX.md'` and edit it in place
 - Never skip verification — everything must pass before reporting done
 - If a test fails and the fix is in the plan: fix it. If it requires a design decision: blocker.
 - Write code you would be comfortable reviewing in a PR — if you would flag something in a review, fix it before committing

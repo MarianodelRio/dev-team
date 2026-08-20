@@ -217,7 +217,9 @@ bash scripts/dt-pr.sh T-XXX \
   --title "T-XXX: [task title]" \
   --body-file /tmp/pr-body-T-XXX.md
 ```
-The script creates the PR, captures the URL, moves the task from `tasks/ready-for-pr/` to `tasks/pr-open/`, and commits to main. It outputs `PR_NUMBER` and `PR_URL`.
+The script creates the PR, captures the URL, moves the task from `tasks/ready-for-pr/` to `tasks/pr-open/`, and commits to main. It outputs `PR_NUMBER`, `PR_URL` and `PR_MERGEABLE`.
+
+If `PR_MERGEABLE=CONFLICTING`, GitHub cannot merge the branch: rebase it on the base branch and force-push, then re-check with `gh pr view $PR_NUMBER --json mergeable`. Report the state to the user either way; `UNKNOWN` just means GitHub had not finished computing.
 
 If `$CFG_PR_MODE` is `manual`:
 

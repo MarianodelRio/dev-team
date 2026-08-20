@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # dt-claim.sh — claim an available task: create the lock branch, set up a worktree,
-# and record IN_PROGRESS on main.
+# record IN_PROGRESS on main, and fast-forward the branch onto that commit so the
+# task file sits at the same path on the branch as on main.
 #
 #   dt-claim.sh T-XXX [--dry-run]
 #
@@ -75,6 +76,32 @@ _SESS_LABEL=""
 git -C "$REPO_ROOT" commit -m "chore($ID): claim [IN_PROGRESS]${_SESS_LABEL}" --quiet
 git -C "$REPO_ROOT" push origin main --quiet
 ok "$ID marked in-progress on main"
+
+# 4) Fast-forward the lock branch (and the worktree) onto the claim commit.
+#
+# The lock push in step 1 branched from main BEFORE the move above, so without
+# this the worktree holds the task file at tasks/available/ while main holds it
+# at tasks/in-progress/. The Coder is handed the in-progress path (read from
+# main) and, finding nothing there, may create a second file at that path — an
+# add/add conflict against main at the Phase 4 rebase. Aligning the branch here
+# leaves exactly one path for the task file, on both sides.
+#
+# This is a fast-forward (main is a descendant of the lock point), so it needs
+# no --force and cannot clobber anything: nothing has been committed on the
+# branch yet. Best-effort — a failure here degrades to the old behaviour, which
+# the Phase 4 rebase can still resolve, so warn instead of aborting the claim.
+if git -C "$REPO_ROOT" push origin "main:refs/heads/$BRANCH" --quiet 2>/dev/null; then
+  git -C "$WT" fetch origin "$BRANCH" --quiet 2>/dev/null || true
+  if git -C "$WT" merge --ff-only "origin/$BRANCH" --quiet 2>/dev/null; then
+    ok "branch and worktree aligned with main (task file at tasks/in-progress/)"
+  else
+    log "WARNING: could not fast-forward the worktree to origin/$BRANCH"
+    log "         the task file is at tasks/available/ in $WT but tasks/in-progress/ on main"
+  fi
+else
+  log "WARNING: could not fast-forward origin/$BRANCH onto the claim commit"
+  log "         the task file is at tasks/available/ in $WT but tasks/in-progress/ on main"
+fi
 
 refresh_index
 echo ""
