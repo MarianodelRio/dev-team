@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# dev-team v1.7.0 — https://github.com/MarianodelRio/dev-team
+# dev-team v1.8.0 — https://github.com/MarianodelRio/dev-team
 # install.sh — install dev-team into an existing project
 # Usage: bash install.sh [target-directory]
 # If no target directory is given, installs into the current directory.
