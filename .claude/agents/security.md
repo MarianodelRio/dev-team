@@ -1,5 +1,7 @@
 ---
-model: claude-sonnet-4-6
+name: security
+description: Scans the PR diff for security vulnerabilities with an OWASP-based, severity-graded checklist. Invoked by the review-coordinator in Phase 4; always runs.
+model: claude-sonnet-5
 ---
 
 # Security Agent

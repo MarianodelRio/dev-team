@@ -389,6 +389,24 @@ Wait for a non-conflicting name before creating that agent file.
 For each approved module name:
 - Create `.claude/agents/[module].md` with folder ownership, commands, and domain expertise
 
+**Required frontmatter — the agent is not invocable without it.** Claude Code only registers a
+file in `.claude/agents/` as a spawnable sub-agent type when its frontmatter carries both `name`
+and `description`. A file with only `model:` is silently ignored: the spawn falls back to a
+generic agent, the per-agent model routing is lost, and nothing reports an error. Every generated
+agent file must start with:
+
+```markdown
+---
+name: [module]                    # exactly the filename without .md — this is what invokes it
+description: [one line: WHAT this agent owns and WHEN to invoke it]
+model: [value of model.fast in devteam.config.yml]
+---
+```
+
+`name` must match the filename character for character, because `agent:` fields in `tasks/*.md`
+and every sub-agent spawn resolve by that string. `description` is not decorative — Claude Code
+reads it to decide relevance, so write what the agent does and when it is invoked, not a title.
+
 **Agent name reconciliation:** After all agent files have been generated, scan every task file in `tasks/` and update the `agent:` field to match the actual generated agent file names. This corrects any mismatches that arose because tasks were drafted before agent names were finalized (or because a name was changed to avoid a reserved-name conflict).
 
 Generate `CLAUDE.md` customized for this project (replace generic content with project-specific architecture, module list, and rules).
@@ -451,6 +469,35 @@ Generate batteries based on `devteam.config.yml`:
 - If `security_policy: true` → generate `SECURITY.md`
 - If `github_templates: true` → generate `.github/PULL_REQUEST_TEMPLATE.md` and issue templates
 
+**Agent registration check (run before reporting success).** Every file in `.claude/agents/` —
+framework agents included — must declare `name` and `description`, and `name` must equal the
+filename. Without them Claude Code never registers the sub-agent type and the whole pipeline
+silently degrades to generic agents:
+
+```bash
+for f in .claude/agents/*.md; do
+  n=$(basename "$f" .md)
+  grep -q "^name: $n$" "$f" || echo "BROKEN: $f — missing or mismatched 'name: $n'"
+  grep -q "^description: " "$f" || echo "BROKEN: $f — missing 'description:'"
+done
+```
+
+Fix every file the check reports before printing the summary below.
+
+Ensure `.claude/settings.json` exists. The review pipeline spawns sub-agents from inside a
+sub-agent (review-coordinator → reviewers), which needs a spawn depth above the default:
+
+```json
+{
+  "env": {
+    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "2",
+    "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": "5"
+  }
+}
+```
+
+If the file already exists, merge these two `env` keys into it without touching anything else.
+
 Output:
 ```
 Bootstrap complete.
@@ -463,7 +510,8 @@ Generated:
 ✓ CLAUDE.md (project-specific)
 ✓ .claude/steering/ (4 scoped steering files: always, task-format, context-formats, coder-complete)
 ✓ .claude/AGENTS.md (stub pointing to steering/)
-✓ .claude/agents/ (X specialized agents)
+✓ .claude/agents/ (X specialized agents, all registered with name + description)
+✓ .claude/settings.json (sub-agent spawn depth and concurrency)
 ✓ tests/fixtures/smoke_test.sh (smoke test template — edit to add project-specific startup steps)
 ✓ context/decisions/, context/discoveries/, and context/retrospectives/ (agent context directories)
 ✓ [list of batteries generated]

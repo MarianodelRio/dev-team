@@ -53,6 +53,7 @@ Right now on this project:
   🔧 In progress (maybe other chats): [in-progress ids + branch]
   🔴 Waiting for dependency: [ids where depends_on has IDs not yet in done/ or cancelled/]
   🔴 Missing agent:          [ids where .claude/agents/$AGENT.md does not exist]
+  🔴 Unregistered agent:     [ids whose .claude/agents/$AGENT.md exists but lacks name/description]
 
 Suggested next: [critical_path_next] — [title]
 ```
@@ -94,4 +95,9 @@ If the ID isn't found, say so and suggest `/status`.
 - **Classifying blocked tasks (ISS-136):** split the blocked bucket into two sub-categories:
   - **Waiting for dependency** — `depends_on` contains IDs not yet in `tasks/done/` or `tasks/cancelled/`; list the blocking IDs and their current status.
   - **Missing agent** — the `agent:` field names a file that does not exist in `.claude/agents/`; show the missing filename (e.g. `agents/data-eng.md not found`).
-  A task can be in both categories simultaneously — show both reasons.
+  - **Unregistered agent** — the file exists but its frontmatter lacks `name: $AGENT` (matching the filename) or `description:`. Claude Code will not register it as a sub-agent type, so the spawn silently falls back to a generic agent with no model routing. Detect with:
+    ```bash
+    grep -q "^name: $AGENT$" ".claude/agents/$AGENT.md" && grep -q "^description: " ".claude/agents/$AGENT.md"
+    ```
+    Report as `agents/$AGENT.md exists but is not registered — add name/description to its frontmatter`.
+  A task can be in more than one category simultaneously — show every reason.

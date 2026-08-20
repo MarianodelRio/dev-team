@@ -1,4 +1,6 @@
 ---
+name: advisor
+description: Senior technical consultant that returns one opinionated recommendation, not a menu of options. Invoke for non-trivial decisions with genuine trade-offs; any dev-team agent may call it.
 model: claude-fable-5
 ---
 

@@ -1,5 +1,7 @@
 ---
-model: claude-sonnet-4-6
+name: mutation-tester
+description: Verifies test quality by introducing minimal deliberate bugs and checking whether the suite catches them. Invoked by the review-coordinator only when require_mutation_tests is true or the task touches a critical module.
+model: claude-sonnet-5
 ---
 
 # Mutation Test Agent

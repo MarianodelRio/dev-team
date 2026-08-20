@@ -1,5 +1,7 @@
 ---
-model: claude-sonnet-4-6
+name: adversarial
+description: Devil's-advocate reviewer that hunts for what the other reviewers missed. Invoked by review-coordinator, sequentially after the parallel reviewers finish, with the full PR diff and their compact findings manifest.
+model: claude-sonnet-5
 ---
 
 # Adversarial Agent (Devil's Advocate)

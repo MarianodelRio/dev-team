@@ -1,5 +1,7 @@
 ---
-model: claude-sonnet-4-6
+name: code-quality
+description: Reviews the PR diff for correctness, architecture compliance, test coverage and documentation. Invoked by the review-coordinator in Phase 4 of /orchestrate; always runs.
+model: claude-sonnet-5
 ---
 
 # Code Quality Agent

@@ -40,6 +40,26 @@ CFG_SPEC_COVERAGE_THRESHOLD=$(dt_config quality.spec_coverage_threshold 80)
 CFG_RETRO_ENABLED=$(dt_config memory.retrospective_memory_enabled true)
 ```
 
+**Agent registration pre-flight.** Every phase below spawns a sub-agent by name. Claude Code only
+registers a file in `.claude/agents/` as a spawnable type when its frontmatter declares both `name`
+(equal to the filename) and `description`; otherwise the spawn silently falls back to a generic
+agent, per-agent model routing is lost, and nothing reports an error. Verify before Phase 1:
+
+```bash
+UNREGISTERED=""
+for a in architect planner coder review-coordinator advisor; do
+  f=".claude/agents/$a.md"
+  [ -f "$f" ] && grep -q "^name: $a$" "$f" && grep -q "^description: " "$f" || UNREGISTERED="$UNREGISTERED $a"
+done
+echo "UNREGISTERED:$UNREGISTERED"
+```
+
+If `architect`, `planner` or `coder` is unregistered, stop and report to the user:
+`PIPELINE BLOCKED — agent(s) not registered: [names]. Fix .claude/agents/[name].md frontmatter (needs
+name + description), then re-run /orchestrate.` Do not run the pipeline with generic fallbacks. If
+only `advisor` or `review-coordinator` is unregistered, warn the user and note that Phase 4 (or
+Advisor consultations) will be degraded, then continue.
+
 Load steering content to pass to sub-agents:
 ```bash
 STEERING_ALWAYS=$(cat .claude/steering/always.md 2>/dev/null || echo "")

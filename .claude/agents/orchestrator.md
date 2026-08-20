@@ -1,5 +1,7 @@
 ---
-model: claude-opus-4-8
+name: orchestrator
+description: Coordinates end-to-end task execution across the 5-phase pipeline (sync and selection, analysis, planning, implementation, review and PR) and is the sole point of contact with the user. Runs /orchestrate, /bug and /explore.
+model: claude-opus-5
 ---
 
 # Orchestrator Agent
