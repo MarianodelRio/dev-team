@@ -87,6 +87,18 @@ STEERING_TASK_FORMAT=$(cat .claude/steering/task-format.md 2>/dev/null || echo "
 
 ## Step 4 — Review (via review-coordinator)
 
+**Registration pre-flight.** The review-coordinator is only spawnable when its definition declares
+`name` and `description`; otherwise the spawn silently falls back to a generic agent:
+
+```bash
+f=".claude/agents/review-coordinator.md"
+[ -f "$f" ] && grep -q "^name: review-coordinator$" "$f" && grep -q "^description: " "$f" \
+  || echo "UNREGISTERED"
+```
+
+If unregistered, stop and report: `REVIEW BLOCKED — review-coordinator is not registered. Fix
+.claude/agents/review-coordinator.md frontmatter (needs name + description) and re-run.`
+
 Inspect the diff for protected files or shared contracts:
 
 ```bash

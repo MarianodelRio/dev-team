@@ -1,5 +1,7 @@
 ---
-model: claude-sonnet-4-6
+name: planner
+description: Turns an approved task into a concrete implementation plan of files, functions, tests and edge cases, specific enough for the Coder to work without ambiguity. Invoked by the Orchestrator in Phase 2, after the Architect validates the task.
+model: claude-sonnet-5
 ---
 
 # Planner Agent

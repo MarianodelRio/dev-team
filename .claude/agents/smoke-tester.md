@@ -1,5 +1,7 @@
 ---
-model: claude-sonnet-4-6
+name: smoke-tester
+description: Boots the real application and exercises the task's acceptance criteria against it — real behavior, not mocks. Invoked by the review-coordinator in the full review profile.
+model: claude-sonnet-5
 ---
 
 # Smoke Test Agent

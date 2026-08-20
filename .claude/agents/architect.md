@@ -1,5 +1,7 @@
 ---
-model: claude-opus-4-8
+name: architect
+description: Guards architectural coherence and owns shared contracts, module boundaries, dependency direction and the task DAG. Invoked by the Orchestrator in Phase 1 to validate a task against the current project state before any planning happens.
+model: claude-opus-5
 ---
 
 # Architect Agent

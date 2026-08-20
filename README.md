@@ -1,6 +1,6 @@
 # dev-team
 
-[![Release](https://img.shields.io/badge/version-1.6.0-blue)](https://github.com/MarianodelRio/dev-team/releases)
+[![Release](https://img.shields.io/badge/version-1.7.0-blue)](https://github.com/MarianodelRio/dev-team/releases)
 
 **Framework for building software with a team of AI agents via parallel spec-driven development.**
 
@@ -42,6 +42,11 @@ The Advisor is available to any sub-agent for design decisions with genuine trad
 *spec-coverage runs when `spec_coverage_enabled: true` in `devteam.config.yml`. Advisory only — never blocks a PR.
 
 One human checkpoint: after analysis, before code. Everything else is autonomous.
+
+Each sub-agent is a file in `.claude/agents/` whose frontmatter declares `name`, `description` and
+`model`. Claude Code registers the sub-agent type from that frontmatter — if `name` or `description`
+is missing the agent is not invocable, and every spawn silently falls back to a generic agent with
+no per-agent model routing. `/team-init` flags this; see "Agent file format" in `CLAUDE.md`.
 
 ---
 
@@ -91,6 +96,7 @@ curl -fsSL https://raw.githubusercontent.com/MarianodelRio/dev-team/main/install
 - the primary doc for your project type — `docs/api.md`, `docs/cli.md`, `docs/usage.md`, … (not always an API doc)
 - `CLAUDE.md` — project-specific rules (this file becomes project-specific)
 - `.claude/agents/` — specialized agents for your exact modules and stack
+- `.claude/settings.json` — sub-agent spawn depth and concurrency (the review pipeline needs depth 2)
 - `docker-compose.yml`, `Dockerfile` — if your project needs it
 - `.github/workflows/ci.yml` — CI pipeline
 - `.env.example`, `.gitignore`, `CONTRIBUTING.md`, `LICENSE`, `SECURITY.md`
@@ -125,7 +131,7 @@ dev-team adapts to where you are:
 
 **Batteries included** — Docker, CI, .env, .gitignore, security policy, PR templates — all generated automatically for your stack. Optional auto-merge closes the loop for low-risk PRs (coming soon — not yet implemented).
 
-**Model-agnostic configuration** — Configure which model handles reasoning vs. implementation vs. fast tasks in `devteam.config.yml`.
+**Model-agnostic configuration** — Four model slots in `devteam.config.yml` — `reasoning` (architect, orchestrator), `advisor`, `implementation` (coder, planner, reviewers) and `fast` (project agents) — each mapped to the matching agent frontmatter.
 
 **Adaptive to your level** — Bootstrap conversation adapts to your technical expertise. Works for senior engineers and non-technical founders alike.
 

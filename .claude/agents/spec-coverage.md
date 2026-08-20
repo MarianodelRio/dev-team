@@ -1,5 +1,7 @@
 ---
-model: claude-sonnet-4-6
+name: spec-coverage
+description: Maps the Logic and Interface constraints in spec.md to the tests in the PR diff and flags requirements no test addresses. Advisory only, never blocks; invoked by the review-coordinator when spec_coverage_enabled is true.
+model: claude-sonnet-5
 ---
 
 # Spec Coverage Agent

@@ -5,7 +5,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
-## [1.6.0] — current
+## [1.7.0] — current
+
+### Fixed
+- **Sub-agent registration (critical)** — the 12 framework agents in `.claude/agents/` declared only `model:` in their frontmatter. Claude Code registers a file as an invocable sub-agent type only when both `name` and `description` are present, so none of them were ever registered: every spawn in `/orchestrate` Phases 1–4 and `/prepare-pr` silently fell back to a generic agent with the definition pasted inline, and the per-agent `model:` routing (opus for architect/orchestrator, fable for advisor, sonnet for the rest) was never applied. Present since 1.4. All 12 agents now declare `name` (matching the filename) and a one-line `description`; `model:` values are unchanged.
+- **`/bootstrap` generated unregistered project agents** — the agent-generation step never specified frontmatter, so every `[module].md` it wrote had the same defect. It now emits a required `name`/`description`/`model` template, runs a registration check before reporting success, and ensures `.claude/settings.json` exists with the spawn-depth keys.
+- **`install.sh`** — when the target already had a `.claude/` directory it merged only `commands/` and `agents/`, so `steering/`, `AGENTS.md` and `settings.json` (which carries `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`, required for the review-coordinator to spawn reviewers) never reached the project. All four are now merged, and the installer warns about unregistered agents and about an existing `settings.json` missing the spawn-depth key. Stale header version/URL corrected.
+- **`CLAUDE.md` / `.claude/AGENTS.md` steering claim** — both stated that steering files are "injected automatically by the Claude Code harness based on their `inclusion:` frontmatter" and that the Orchestrator does not relay them. There is no harness-side injection: the Orchestrator reads the files in Phase 0 and pastes them inline into each sub-agent prompt. Documented as it actually works.
+- **`context-formats.md` scope** — its `agents:` list included `review-coordinator`, which is never sent that file; aligned with what `/orchestrate` actually relays.
+
+### Changed
+- **Fourth model slot: `model.advisor`** — the `reasoning` slot mapped to three agents (advisor, architect, orchestrator) that were never on the same model, so the stored config value did not describe two of its own agents and any `/team-init` Section E change collapsed the distinction. `reasoning` is now `claude-opus-5` and covers architect + orchestrator only; the new `advisor` slot holds `claude-fable-5` for the Advisor alone. Slot documentation, the Section E mapping table, the state card and the README updated to match.
+- **Models bumped to the current generation** — `claude-opus-4-8` → `claude-opus-5` (architect, orchestrator) and `claude-sonnet-4-6` → `claude-sonnet-5` (coder, planner, review-coordinator, code-quality, security, adversarial, smoke-tester, mutation-tester, spec-coverage). Advisor stays on `claude-fable-5`; project agents stay on `claude-haiku-4-5` (no Haiku 5 exists). Also updated in `devteam.config.yml` (`model.implementation`), the `/team-init` Section E menu, and the frontmatter examples in `CLAUDE.md` and `CONTRIBUTING.md`. The previous IDs were never broken — they still resolve — this is a capability upgrade, not a fix.
+
+### Added
+- Registration pre-flight checks wherever an agent is spawned or configured: `/orchestrate` Phase 0 (halts on unregistered architect/planner/coder, warns on advisor/review-coordinator), `/prepare-pr` Step 4, `review-coordinator` Phase 2 (now verifies frontmatter, not just file existence), `/team-init` Step 2b (also warns when `settings.json` lacks the spawn-depth key), and `/cheatsheet` (new "Unregistered agent" bucket).
+- "Agent file format" section in `CLAUDE.md` documenting the required frontmatter and why it is load-bearing.
+
+## [1.6.0] — 2026-08-19
 
 ### Fixed
 - **Scripts** — 8 bug fixes: worktree path extraction in dt-cancel/dt-restart; remote branch deletion ordering in dt-done/dt-restart; stale `--rebuild-index` flag; false-negative in dt-ready (fetch before unpushed check); PR number validation in dt-pr; validate_id regex now accepts 1–3 digits (B-7, B-42); worktree path sanitization in dt-common; temp file cleanup trap in dt-claim; newline/tab escaping in dt-board

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# dev-team v1.1.0 — https://github.com/your-org/dev-team
+# dev-team v1.7.0 — https://github.com/MarianodelRio/dev-team
 # install.sh — install dev-team into an existing project
 # Usage: bash install.sh [target-directory]
 # If no target directory is given, installs into the current directory.
@@ -100,8 +100,8 @@ echo ""
 
 # .claude/ — commands and agent definitions
 if [ -d "$TARGET/.claude" ]; then
-  info ".claude/ already exists — merging commands/ and agents/ only"
-  mkdir -p "$TARGET/.claude/commands" "$TARGET/.claude/agents"
+  info ".claude/ already exists — merging commands/, agents/, steering/ and settings.json"
+  mkdir -p "$TARGET/.claude/commands" "$TARGET/.claude/agents" "$TARGET/.claude/steering"
   for f in "$SCRIPT_DIR/.claude/commands/"*; do
     dst="$TARGET/.claude/commands/$(basename "$f")"
     copy_if_missing "$f" "$dst"
@@ -110,10 +110,36 @@ if [ -d "$TARGET/.claude" ]; then
     dst="$TARGET/.claude/agents/$(basename "$f")"
     copy_if_missing "$f" "$dst"
   done
+  for f in "$SCRIPT_DIR/.claude/steering/"*; do
+    dst="$TARGET/.claude/steering/$(basename "$f")"
+    copy_if_missing "$f" "$dst"
+  done
+  copy_if_missing "$SCRIPT_DIR/.claude/AGENTS.md" "$TARGET/.claude/AGENTS.md"
+  # settings.json carries the sub-agent spawn depth the review pipeline depends on.
+  # It is never merged into an existing file — warn instead, so the user can add the keys.
+  if [ -f "$TARGET/.claude/settings.json" ]; then
+    skip ".claude/settings.json"
+    if ! grep -q "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH" "$TARGET/.claude/settings.json"; then
+      info "NOTE: add \"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH\": \"2\" to .claude/settings.json env —"
+      info "      the review-coordinator spawns reviewers from inside a sub-agent and needs depth 2."
+    fi
+  else
+    copy_if_missing "$SCRIPT_DIR/.claude/settings.json" "$TARGET/.claude/settings.json"
+  fi
 else
   cp -r "$SCRIPT_DIR/.claude" "$TARGET/.claude"
   success "Copied .claude/"
 fi
+
+# Agent registration check — a file in .claude/agents/ is only invocable as a sub-agent
+# type when its frontmatter declares name (equal to the filename) and description.
+for f in "$TARGET/.claude/agents/"*.md; do
+  [ -e "$f" ] || continue
+  n="$(basename "$f" .md)"
+  if ! grep -q "^name: $n\$" "$f" || ! grep -q "^description: " "$f"; then
+    info "WARNING: $f is not registered as a sub-agent (frontmatter needs 'name: $n' and 'description:')"
+  fi
+done
 
 # devteam.config.yml
 copy_if_missing "$SCRIPT_DIR/devteam.config.yml" "$TARGET/devteam.config.yml"

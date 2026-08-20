@@ -99,7 +99,7 @@ Agent files follow this structure:
 
 ```markdown
 ---
-model: claude-sonnet-4-6   # or claude-opus-4-8 for reasoning-heavy agents
+model: claude-sonnet-5    # or claude-opus-5 for reasoning-heavy agents
 tools: [Read, Edit, Bash]
 ---
 

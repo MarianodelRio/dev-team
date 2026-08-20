@@ -1,6 +1,6 @@
 ---
 inclusion: agentMatch
-agents: [orchestrator, architect, coder, planner, review-coordinator]
+agents: [orchestrator, architect, coder, planner]
 ---
 
 # Context file formats

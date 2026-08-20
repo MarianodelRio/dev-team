@@ -1,5 +1,7 @@
 ---
-model: claude-sonnet-4-6
+name: coder
+description: Implements the Planner's plan inside the assigned git worktree, writes the tests and verifies quality before handing back. Invoked by the Orchestrator in Phase 3, after the human checkpoint approves the plan.
+model: claude-sonnet-5
 ---
 
 # Coder Agent

@@ -1,5 +1,7 @@
 ---
-model: claude-sonnet-4-6
+name: review-coordinator
+description: Manages the complete review pipeline for a PR — runs code-quality, security, smoke-tester, mutation-tester and spec-coverage in parallel, then adversarial sequentially, and returns one consolidated report to the Orchestrator. Invoked in Phase 4 of /orchestrate and by /prepare-pr.
+model: claude-sonnet-5
 ---
 
 # Review Coordinator Agent
@@ -69,7 +71,16 @@ Record: `effective_profile: full | fast` and `profile_reason: [why]`.
 
 ## Phase 2 — Parallel review
 
-**Pre-flight check:** Confirm each sub-agent has a definition file in `.claude/agents/` before spawning: code-quality.md, security.md, adversarial.md, smoke-tester.md, mutation-tester.md. If `code-quality.md` or `security.md` agent definitions are not found, halt the review immediately and return to the Orchestrator: `REVIEW BLOCKED — required agent definition missing: [filename]. Manual review required.` Do not proceed with a partial review. When `config.spec_coverage_enabled: true`, also confirm spec-coverage.md exists; if it does not, log a warning and skip spec-coverage for this run. When spec-coverage is skipped, add this line directly to the manifest: `[SCOV-VERDICT] NOT_RUN (spec-coverage.md definition file not found)`
+**Pre-flight check:** Confirm each sub-agent is actually *registered* before spawning: code-quality, security, adversarial, smoke-tester, mutation-tester. A definition file existing is not enough — Claude Code only registers a sub-agent type when the file's frontmatter declares both `name` (equal to the filename) and `description`. A file with only `model:` is silently ignored and the spawn falls back to a generic agent with no model routing. Check both conditions:
+
+```bash
+for a in code-quality security adversarial smoke-tester mutation-tester; do
+  f=".claude/agents/$a.md"
+  [ -f "$f" ] && grep -q "^name: $a$" "$f" && grep -q "^description: " "$f" || echo "UNREGISTERED: $a"
+done
+```
+
+If `code-quality` or `security` comes back unregistered, halt the review immediately and return to the Orchestrator: `REVIEW BLOCKED — required agent not registered: [name] (.claude/agents/[name].md is missing, or its frontmatter lacks name/description). Manual review required.` Do not proceed with a partial review. If `adversarial`, `smoke-tester` or `mutation-tester` is unregistered, log a warning, skip that agent, and record it in the report — never substitute a generic agent for it. When `config.spec_coverage_enabled: true`, run the same check for spec-coverage; if it fails, log a warning and skip spec-coverage for this run, adding this line directly to the manifest: `[SCOV-VERDICT] NOT_RUN (spec-coverage agent not registered)`
 
 **Steering forwarding:** The Orchestrator has injected `STEERING_ALWAYS` and `STEERING_TASK_FORMAT` into your prompt. Forward this content inline to each sub-agent you spawn — prepend it to each sub-agent's input.
 
