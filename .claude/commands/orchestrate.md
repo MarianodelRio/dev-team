@@ -453,7 +453,16 @@ bash scripts/dt-pr.sh T-XXX \
   --title "T-XXX: [task title]" \
   --body-file /tmp/pr-body-T-XXX.md
 ```
-The script creates the PR, captures the URL, moves the task to `tasks/pr-open/`, commits to main, and removes the worktree. It outputs `PR_NUMBER` and `PR_URL`.
+The script creates the PR, captures the URL, moves the task to `tasks/pr-open/`, commits to main, and removes the worktree. It outputs `PR_NUMBER`, `PR_URL` and `PR_MERGEABLE`.
+
+**If `PR_MERGEABLE=CONFLICTING`:** GitHub cannot merge the branch even though the local rebase was clean. The script keeps the worktree in this case — rebase there and force-push:
+```bash
+cd ../$PROJECT_SLUG-T-XXX
+git fetch origin && git rebase origin/main
+bash scripts/dt-verify.sh --worktree .
+git push --force-with-lease origin $BRANCH
+```
+Then re-check with `gh pr view $PR_NUMBER --json mergeable`. Escalate to the user if it stays CONFLICTING after one rebase. If `PR_MERGEABLE=UNKNOWN`, GitHub had not finished computing — report the PR as opened and note that mergeability is still pending.
 
 If `CFG_PR_MODE` is `manual`:
 

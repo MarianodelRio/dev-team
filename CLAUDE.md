@@ -127,6 +127,14 @@ After completing a task, the agent appends:
 - Decisions made and why
 ```
 
+**Who moves the file, and who edits it.** The folder moves belong to `main` alone — `dt-claim`,
+`dt-ready`, `dt-pr` and `dt-done` rename the file there as the status changes. The Coder only
+appends `## Completed`, in place, at whatever `tasks/*/` folder the file currently sits in
+(`git ls-files 'tasks/*/T-XXX.md'` in the worktree). It never creates the file at another path and
+never moves it: a second copy at the folder `main` is using becomes an add/add conflict at the
+review rebase. `dt-claim` fast-forwards the feature branch onto its own claim commit precisely so
+that both sides see one path.
+
 ---
 
 ## Framework agents
@@ -254,6 +262,7 @@ All framework behavior is controlled by `devteam.config.yml`. See that file for 
 - **Protected files** (shared contracts, database schema, CI/CD config) require explicit human approval before any agent touches them; changes must be propagated to all consuming modules in the same PR
 - **Never edit `spec.md` directly** — use `/refine`
 - **Never commit directly to `main`** — only `tasks/*.md` status updates go to main; all implementation goes through feature branches
+- **Never move a task file from a feature branch** — the `tasks/*/` folder moves are main's; a branch only appends `## Completed` in place
 - **Never skip the human checkpoint** — the Orchestrator presents the plan and waits for confirmation before any code is written
 
 Agent-specific runtime rules are defined in `.claude/steering/`. The `inclusion:` frontmatter in each

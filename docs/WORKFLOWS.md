@@ -65,9 +65,9 @@ State transitions are handled by the scripts in `scripts/` (called by the comman
 
 | Script | Does |
 |--------|------|
-| `dt-claim.sh T-XXX` | lock branch + worktree + IN_PROGRESS on main |
+| `dt-claim.sh T-XXX` | lock branch + worktree + IN_PROGRESS on main, then fast-forwards the branch onto that commit so the task file has one path on both sides |
 | `dt-ready.sh T-XXX` | remove worktree, move to `ready-for-pr/` (escape hatch use only — /orchestrate handles this internally) |
-| `dt-pr.sh T-XXX --title "..." --body-file f` | create PR + move to `pr-open/` + remove worktree |
+| `dt-pr.sh T-XXX --title "..." --body-file f` | create PR + move to `pr-open/` + check mergeability + remove worktree (kept if the PR comes back CONFLICTING) |
 | `dt-pr.sh T-XXX --pr-url "https://..."` | mark PR_OPEN with existing URL (manual mode) |
 | `dt-verify.sh [--worktree path]` | run test + lint + type_check from `devteam.config.yml` |
 | `dt-done.sh T-XXX` | move to `done/`, clean branch, unblock dependents |

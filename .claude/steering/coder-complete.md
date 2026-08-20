@@ -5,7 +5,17 @@ agents: [coder]
 
 # Completion obligation
 
-Before your final commit, you **must** append a `## Completed` section to the task file in the worktree:
+Before your final commit, you **must** append a `## Completed` section to the task file in the worktree.
+
+**Locate that file, do not assume its path.** The task file you were given in your prompt was read from `main`, where it lives under `tasks/in-progress/`. The worktree may hold it under a different folder, because `main` moves the file between `tasks/*/` folders as the task advances. Find the one that is actually there:
+
+```bash
+git ls-files 'tasks/*/T-XXX.md'
+```
+
+Append to the path that command prints, in place. **Never create the file at another path and never move it** — `main` owns those folder moves, and a second copy at the folder `main` is using becomes an add/add conflict at the review rebase that a human has to resolve by hand. If the command prints nothing, stop and report it as a blocker instead of creating the file.
+
+The section to append:
 
 ```markdown
 ## Completed

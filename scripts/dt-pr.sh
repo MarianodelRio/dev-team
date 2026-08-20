@@ -6,7 +6,8 @@
 #
 # First form (pr_mode: automatic): runs gh pr create, captures URL, updates task.
 # Second form (pr_mode: manual):   user already created the PR; just updates task.
-# Both forms: move task to pr-open/, commit+push to main, remove worktree if it exists.
+# Both forms: move task to pr-open/, commit+push to main, poll GitHub for mergeability,
+# and remove the worktree (kept when the PR comes back CONFLICTING).
 #
 # Task must be in tasks/in-progress/ or tasks/ready-for-pr/.
 
@@ -125,8 +126,33 @@ git -C "$REPO_ROOT" commit -m "chore($ID): mark PR_OPEN — PR #$PR_NUMBER" --qu
 git -C "$REPO_ROOT" push origin main --quiet
 ok "$ID marked pr-open on main"
 
+# ── Mergeability check ───────────────────────────────────────────────────────
+# GitHub computes mergeability asynchronously and reports UNKNOWN for a few
+# seconds after a PR is created or after its base branch moves — and the push to
+# main above just moved it. Poll until it resolves so the caller gets a real
+# answer instead of a race. Runs before the worktree is torn down, because a
+# CONFLICTING result is fixed by rebasing in that worktree. Never fatal: the PR
+# exists either way.
+PR_MERGEABLE="UNKNOWN"
+if command -v gh >/dev/null 2>&1; then
+  for _ in 1 2 3 4 5; do
+    PR_MERGEABLE="$(gh pr view "$PR_NUMBER" --repo "$REPO_SLUG" --json mergeable -q '.mergeable' 2>/dev/null || echo UNKNOWN)"
+    [ -n "$PR_MERGEABLE" ] || PR_MERGEABLE="UNKNOWN"
+    [ "$PR_MERGEABLE" != "UNKNOWN" ] && break
+    sleep 3
+  done
+  case "$PR_MERGEABLE" in
+    MERGEABLE)   ok "PR #$PR_NUMBER is mergeable" ;;
+    CONFLICTING) err "PR #$PR_NUMBER is CONFLICTING — rebase $BRANCH on $BASE_BRANCH and force-push before merging" ;;
+    *)           log "PR #$PR_NUMBER mergeability still UNKNOWN — re-check with: gh pr view $PR_NUMBER --json mergeable" ;;
+  esac
+fi
+
 # ── Remove worktree (silent if already gone) ──────────────────────────────────
-if [ -e "$WT" ]; then
+# Kept when the PR is CONFLICTING: it is where the rebase has to happen.
+if [ "$PR_MERGEABLE" = "CONFLICTING" ] && [ -e "$WT" ]; then
+  log "worktree kept for the rebase: $WT"
+elif [ -e "$WT" ]; then
   git -C "$REPO_ROOT" worktree remove --force "$WT" 2>/dev/null \
     && ok "worktree removed: $WT" \
     || log "could not remove worktree $WT (already gone?)"
@@ -137,3 +163,4 @@ refresh_index
 echo ""
 echo "PR_NUMBER=$PR_NUMBER"
 echo "PR_URL=$PR_URL"
+echo "PR_MERGEABLE=$PR_MERGEABLE"

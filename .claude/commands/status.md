@@ -98,6 +98,6 @@ Suggested next /orchestrate target: T-XXX (unblocks the most)
 - Show the Bugs section only when active bugs exist — don't show an empty section
 - Cancelled tasks (status: cancelled) are hidden from the board by default
 - **Elapsed time for in-progress tasks:** find the git commit that first placed the file in `tasks/in-progress/`:
-  `git log --all --diff-filter=A -- "tasks/in-progress/T-XXX.md" --format="%ci" | head -1`
+  `git log --all --reverse --diff-filter=A -- "tasks/in-progress/T-XXX.md" --format="%ci" | head -1`
   Compute the difference from that timestamp to now. Format as `"2h"`, `"1d 4h"`, or `"3d"`. Append inline: `(branch: feature/T-XXX-slug, elapsed: 2h)`. If git history is unavailable or the commit cannot be found, omit the elapsed field.
 - **Filter flags:** when `$ARGUMENTS` contains `--active`, `--phase N`, `--agent NAME`, or `--blocked`, render only the matching subset of the board instead of the full view.
